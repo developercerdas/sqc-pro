@@ -1,0 +1,52 @@
+{
+  "lastUpdated": "2026-10-31T10:38:00.000Z",
+  "datasetSummary": "Periode: 24 Jul – 29 Sep 2026",
+  "workers": [
+    { 
+      "name": "Siti Solihati", "lokal": "1B", "mandor": "SABILI ABIDUL H.", "brand": "KS New", "garapan": 9517000, "telak": 129672, "mandorDefect": 199908.5, "pctTelak": 1.36, "pctMandor": 2.11,
+      "defects": { "cowong": 22100, "papir_kusut": 4900, "lem_kurang": 7000, "talipan_kotor": 3900, "muntir": 6800, "medot": 32400, "atos": 9200, "mekar_mingkup": 43372 }
+    },
+    { 
+      "name": "Eva Nurul Jannah", "lokal": "2A", "mandor": "M. NAUFAL A.", "brand": "SSB", "garapan": 8824625, "telak": 84146, "mandorDefect": 130248.0, "pctTelak": 0.95, "pctMandor": 1.65,
+      "defects": { "cowong": 11200, "papir_kusut": 2800, "lem_kurang": 4100, "talipan_kotor": 2200, "muntir": 3900, "medot": 21800, "atos": 5000, "mekar_mingkup": 33146 }
+    },
+    { 
+      "name": "Fidzalika Adzani", "lokal": "3B", "mandor": "MUSLIKIN", "brand": "MW", "garapan": 1470680, "telak": 18444, "mandorDefect": 35228.0, "pctTelak": 1.23, "pctMandor": 2.98,
+      "defects": { "cowong": 3100, "papir_kusut": 800, "lem_kurang": 1100, "talipan_kotor": 600, "muntir": 1200, "medot": 4900, "atos": 1400, "mekar_mingkup": 5344 }
+    },
+    { 
+      "name": "Mia Pratiwi", "lokal": "1C", "mandor": "LUSI M.", "brand": "Gemilang", "garapan": 5770000, "telak": 93668, "mandorDefect": 116342.0, "pctTelak": 1.63, "pctMandor": 2.07,
+      "defects": { "cowong": 14800, "papir_kusut": 3800, "lem_kurang": 5200, "talipan_kotor": 2900, "muntir": 4100, "medot": 26500, "atos": 6000, "mekar_mingkup": 30368 }
+    },
+    { 
+      "name": "Muh Arif Misbachul A.", "lokal": "2B", "mandor": "M. NURDIN", "brand": "Premiere", "garapan": 6339730, "telak": 85859, "mandorDefect": 141954.0, "pctTelak": 1.43, "pctMandor": 2.31,
+      "defects": { "cowong": 13500, "papir_kusut": 3400, "lem_kurang": 4800, "talipan_kotor": 2800, "muntir": 4500, "medot": 24200, "atos": 5800, "mekar_mingkup": 26859 }
+    },
+    { 
+      "name": "Sonya Novita D.", "lokal": "3A", "mandor": "PURYANI", "brand": "Intan", "garapan": 9945000, "telak": 178653, "mandorDefect": 395560.0, "pctTelak": 1.80, "pctMandor": 4.19,
+      "defects": { "cowong": 28500, "papir_kusut": 6800, "lem_kurang": 8900, "talipan_kotor": 5400, "muntir": 9200, "medot": 48200, "atos": 11800, "mekar_mingkup": 59853 }
+    },
+    { 
+      "name": "Winka Nanda Viola", "lokal": "1A", "mandor": "M. NIRWANSYAH", "brand": "MW", "garapan": 9007500, "telak": 136063, "mandorDefect": 193720.0, "pctTelak": 1.51, "pctMandor": 2.14,
+      "defects": { "cowong": 18400, "papir_kusut": 5200, "lem_kurang": 6100, "talipan_kotor": 4800, "muntir": 7300, "medot": 38200, "atos": 8100, "mekar_mingkup": 47963 }
+    }
+  ],
+  "dailyTrend": [
+    { "date": "2026-07-24", "label": "24 Jul", "telak": 14000, "mandor": 23000 },
+    { "date": "2026-08-01", "label": "01 Aug", "telak": 16000, "mandor": 26000 },
+    { "date": "2026-08-10", "label": "10 Aug", "telak": 15000, "mandor": 25000 },
+    { "date": "2026-08-20", "label": "20 Aug", "telak": 17000, "mandor": 28000 },
+    { "date": "2026-09-01", "label": "01 Sep", "telak": 14500, "mandor": 24000 },
+    { "date": "2026-09-15", "label": "15 Sep", "telak": 13800, "mandor": 23500 },
+    { "date": "2026-09-29", "label": "29 Sep", "telak": 13600, "mandor": 23400 }
+  ],
+  "defectTimeSeries": [
+    { "date": "2026-07-24", "label": "24 Jul", "cowong": 15000, "papir_kusut": 3500, "lem_kurang": 4800, "talipan_kotor": 3100, "muntir": 5200, "medot": 27000, "atos": 6500, "mekar_mingkup": 32000 },
+    { "date": "2026-08-01", "label": "01 Aug", "cowong": 17200, "papir_kusut": 3900, "lem_kurang": 5100, "talipan_kotor": 3400, "muntir": 5800, "medot": 29500, "atos": 7100, "mekar_mingkup": 35000 },
+    { "date": "2026-08-10", "label": "10 Aug", "cowong": 16100, "papir_kusut": 3700, "lem_kurang": 4900, "talipan_kotor": 3200, "muntir": 5500, "medot": 28000, "atos": 6800, "mekar_mingkup": 33800 },
+    { "date": "2026-08-20", "label": "20 Aug", "cowong": 18500, "papir_kusut": 4100, "lem_kurang": 5600, "talipan_kotor": 3700, "muntir": 6200, "medot": 31200, "atos": 7600, "mekar_mingkup": 37500 },
+    { "date": "2026-09-01", "label": "01 Sep", "cowong": 15800, "papir_kusut": 3600, "lem_kurang": 4700, "talipan_kotor": 3100, "muntir": 5300, "medot": 27500, "atos": 6400, "mekar_mingkup": 33000 },
+    { "date": "2026-09-15", "label": "15 Sep", "cowong": 14900, "papir_kusut": 3400, "lem_kurang": 4500, "talipan_kotor": 3000, "muntir": 5000, "medot": 26100, "atos": 6100, "mekar_mingkup": 31200 },
+    { "date": "2026-09-29", "label": "29 Sep", "cowong": 14100, "papir_kusut": 3200, "lem_kurang": 4400, "talipan_kotor": 2900, "muntir": 4800, "medot": 25100, "atos": 5900, "mekar_mingkup": 30000 }
+  ]
+}

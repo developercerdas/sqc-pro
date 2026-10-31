@@ -1,0 +1,49 @@
+{
+  "app": {
+    "title": "Executive Production & Defect Quality Dashboard",
+    "subtitle": "Sistem Pemantauan Efisiensi Produksi, Cacat Produk, & Evaluasi Kinerja Pekerja",
+    "warehouse": "Gudang 3",
+    "theme": "dark"
+  },
+  "menus": [
+    { "id": "menu-kpi", "label": "Executive Dashboard", "icon": "fa-solid fa-gauge-high", "section": "kpiSection", "visible": true, "order": 1 },
+    { "id": "menu-insights", "label": "Key Insights & AI", "icon": "fa-solid fa-brain", "section": "insightsSection", "visible": true, "order": 2 },
+    { "id": "menu-charts", "label": "Visual Analytics", "icon": "fa-solid fa-chart-line", "section": "chartsSection", "visible": true, "order": 3 },
+    { "id": "menu-heatmap", "label": "Matrix Heatmap", "icon": "fa-solid fa-border-all", "section": "heatmapSection", "visible": true, "order": 4 },
+    { "id": "menu-table", "label": "Detail Rekapitulasi", "icon": "fa-solid fa-table", "section": "tableSection", "visible": true, "order": 5 },
+    { "id": "menu-master", "label": "Master Data Mandor & Lokal", "icon": "fa-solid fa-id-card-clip", "section": "masterSection", "visible": true, "order": 6 }
+  ],
+  "widgets": [
+    { "id": "kpi-garapan", "title": "Total Garapan", "visible": true, "order": 1 },
+    { "id": "kpi-telak", "title": "Kerusakan Telak", "visible": true, "order": 2 },
+    { "id": "kpi-mandor", "title": "Kerusakan Mandor", "visible": true, "order": 3 },
+    { "id": "kpi-gap", "title": "Gap Variansi", "visible": true, "order": 4 },
+    { "id": "kpi-best", "title": "Best Quality Worker", "visible": true, "order": 5 },
+    { "id": "chart-trend", "title": "Analisis Tren Harian", "visible": true, "order": 6 },
+    { "id": "chart-worker", "title": "Perbandingan per Pekerja", "visible": true, "order": 7 },
+    { "id": "chart-criteria", "title": "Tren Kriteria Cacat", "visible": true, "order": 8 },
+    { "id": "chart-scatter", "title": "Scatter Garapan vs Defect", "visible": true, "order": 9 },
+    { "id": "sec-heatmap", "title": "Heatmap Cacat per Lokal", "visible": true, "order": 10 },
+    { "id": "sec-table", "title": "Tabel Rekapitulasi", "visible": true, "order": 11 }
+  ],
+  "thresholds": {
+    "toleranceLimit": 1.0,
+    "highRiskLimit": 2.0
+  },
+  "defectCriteria": [
+    { "key": "cowong", "label": "COWONG", "code": "CW", "color": "#00f2fe", "visible": true },
+    { "key": "papir_kusut", "label": "PAPIR KUSUT", "code": "PK", "color": "#38ef7d", "visible": true },
+    { "key": "lem_kurang", "label": "LEM KURANG", "code": "LK", "color": "#10b981", "visible": true },
+    { "key": "talipan_kotor", "label": "TALIPAN KOTOR", "code": "TK", "color": "#f59e0b", "visible": true },
+    { "key": "muntir", "label": "MUNTIR", "code": "MT", "color": "#ec4899", "visible": true },
+    { "key": "medot", "label": "MEDOT", "code": "MD", "color": "#ff4b2b", "visible": true },
+    { "key": "atos", "label": "ATOS", "code": "AT", "color": "#8b5cf6", "visible": true },
+    { "key": "mekar_mingkup", "label": "MEKAR-MINGKUP", "code": "MM", "color": "#ff416c", "visible": true }
+  ],
+  "googleSheets": {
+    "webAppUrl": "",
+    "sheetId": "",
+    "autoSync": true,
+    "lastSync": null
+  }
+}

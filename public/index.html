@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="pageTitle">Executive Quality & Defect Dashboard | PT. Sukun Wartono Indonesia</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- SheetJS (xlsx parser & writer) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- DRAG & DROP OVERLAY (CLEAN ENTERPRISE DROPZONE) -->
+    <div id="dragDropOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 transition-all duration-200">
+        <div class="card-executive p-10 max-w-lg w-full text-center space-y-4 border border-blue-500/50 shadow-2xl bg-slate-900/95">
+            <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 text-3xl">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-white tracking-tight">Lepaskan File Excel di Sini</h3>
+                <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                    Mendukung file <strong class="text-slate-200">.xlsx, .xls, .csv</strong>.<br>
+                    Sistem otomatis membaca data <span class="text-slate-200">Rekap Defect Harian</span>, <span class="text-slate-200">Master Mandor/Lokal</span>, dan <span class="text-slate-200">Form Kartu Giling Gudang</span>.
+                </p>
+            </div>
+            <div class="pt-2 text-[11px] text-slate-500 font-mono">
+                Penyimpanan Otomatis ke Database Aktif
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP NAVIGATION BAR (ENTERPRISE HEADER) -->
+    <header class="border-b border-white/[0.08] bg-[#0E1422]/90 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-[1720px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <!-- Brand & Company Title -->
+            <div class="flex items-center space-x-3.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-b from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-500/10 shrink-0">
+                    <i class="fa-solid fa-industry text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-semibold text-blue-400 tracking-wider uppercase font-mono">PT. Sukun Wartono Indonesia</span>
+                        <span class="text-[10px] text-slate-500">•</span>
+                        <span class="text-[11px] text-slate-400" id="headerWarehouseBadge">Gudang 3 BI</span>
+                    </div>
+                    <h1 class="text-base sm:text-lg font-bold text-white tracking-tight leading-tight" id="headerAppTitle">
+                        Executive Production & Defect Quality Dashboard
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Header Quick Actions -->
+            <div class="flex items-center flex-wrap gap-2">
+                <!-- Upload Excel Input -->
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" onchange="handleExcelUpload(event)" class="hidden">
+                <button onclick="document.getElementById('excelFileInput').click()" class="btn-primary flex items-center gap-2">
+                    <i class="fa-solid fa-file-arrow-up text-xs"></i>
+                    <span>Drag / Upload Excel</span>
+                </button>
+
+                <button onclick="openGoogleSheetModal()" class="btn-secondary flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400" id="headerSyncDot"></span>
+                    <span>Database Sheet</span>
+                </button>
+
+                <button onclick="openCustomizerModal()" class="btn-secondary flex items-center gap-1.5" title="Sesuaikan Tampilan & Menu">
+                    <i class="fa-solid fa-sliders text-xs"></i>
+                    <span>Atur Menu</span>
+                </button>
+
+                <button onclick="window.print()" class="btn-secondary flex items-center gap-1.5" title="Cetak Laporan">
+                    <i class="fa-solid fa-print text-xs"></i>
+                    <span>Cetak</span>
+                </button>
+
+                <button onclick="toggleTheme()" class="btn-secondary px-3" title="Ganti Tema">
+                    <i class="fa-solid fa-moon text-xs" id="themeIcon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- SUB-HEADER: SEGMENTED VIEW CONTROLS & FILTER BAR -->
+    <div class="border-b border-white/[0.06] bg-[#0B0F17] py-3 sticky top-[69px] z-30">
+        <div class="max-w-[1720px] mx-auto px-4 sm:px-6 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            
+            <!-- SEGMENTED TABS (TIDAK PANJANG KE BAWAH) -->
+            <div class="segmented-nav flex items-center gap-1 overflow-x-auto no-scrollbar">
+                <button onclick="switchMainView('kpiSection')" id="tabNav-kpiSection" class="segmented-tab active flex items-center gap-2">
+                    <i class="fa-solid fa-gauge text-xs text-blue-400"></i>
+                    <span>Executive Summary</span>
+                </button>
+                <button onclick="switchMainView('chartsSection')" id="tabNav-chartsSection" class="segmented-tab flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-xs text-indigo-400"></i>
+                    <span>Visual Analytics</span>
+                </button>
+                <button onclick="switchMainView('heatmapSection')" id="tabNav-heatmapSection" class="segmented-tab flex items-center gap-2">
+                    <i class="fa-solid fa-border-all text-xs text-emerald-400"></i>
+                    <span>Matrix Heatmap</span>
+                </button>
+                <button onclick="switchMainView('tableSection')" id="tabNav-tableSection" class="segmented-tab flex items-center gap-2">
+                    <i class="fa-solid fa-table text-xs text-amber-400"></i>
+                    <span>Detail Rekapitulasi</span>
+                </button>
+                <button onclick="switchMainView('masterSection')" id="tabNav-masterSection" class="segmented-tab flex items-center gap-2">
+                    <i class="fa-solid fa-id-card-clip text-xs text-purple-400"></i>
+                    <span>Master Mandor & Lokal</span>
+                </button>
+                <button onclick="switchMainView('all')" id="tabNav-all" class="segmented-tab flex items-center gap-1.5" title="Tampilkan Semua Laporan">
+                    <i class="fa-solid fa-layer-group text-xs text-slate-400"></i>
+                    <span>Semua Bagian</span>
+                </button>
+            </div>
+
+            <!-- MULTI-FILTER COMPONENT -->
+            <div class="flex items-center flex-wrap gap-2 text-xs">
+                <div class="relative">
+                    <select id="workerFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
+                        <option value="all">Semua Pekerja</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none"></i>
+                </div>
+
+                <div class="relative">
+                    <select id="lokalFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
+                        <option value="all">Semua Lokal</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none"></i>
+                </div>
+
+                <div class="relative">
+                    <select id="brandFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
+                        <option value="all">Semua Brand</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none"></i>
+                </div>
+
+                <div class="relative">
+                    <input type="text" id="globalSearchInput" onkeyup="applyGlobalFilters()" placeholder="Cari nama, brand..." class="input-executive py-1.5 pl-7 pr-3 w-40 sm:w-48">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                </div>
+
+                <button onclick="resetAllFilters()" class="p-2 text-slate-400 hover:text-white transition" title="Reset Filter">
+                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD CONTENT AREA -->
+    <main class="flex-1 max-w-[1720px] mx-auto px-4 sm:px-6 py-6 w-full space-y-6">
+
+        <!-- ============================================== -->
+        <!-- VIEW 1: EXECUTIVE SUMMARY (KPIS & KEY INSIGHTS) -->
+        <!-- ============================================== -->
+        <div id="view-dashboard-group">
+            
+            <!-- KPI METRICS GRID -->
+            <section id="kpiSection" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                
+                <!-- 1. Total Garapan -->
+                <div id="widget-kpi-garapan" class="card-executive p-4 sm:p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                            <span>TOTAL PRODUKSI</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-medium">100% Target</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-white num-font tracking-tight mt-1" id="kpiGarapan">0</div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-white/[0.06] text-[11px] text-slate-400 flex items-center justify-between">
+                        <span>Total Batang Giling</span>
+                        <span class="text-slate-300 font-mono">Q3 2026</span>
+                    </div>
+                </div>
+
+                <!-- 2. Kerusakan Telak -->
+                <div id="widget-kpi-telak" class="card-executive p-4 sm:p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                            <span>KERUSAKAN TELAK</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 font-medium" id="kpiTelakPct">0.00%</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-white num-font tracking-tight mt-1" id="kpiTelak">0</div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-white/[0.06] text-[11px] text-slate-400 flex items-center justify-between">
+                        <span>Pemeriksaan Operator Awal</span>
+                        <span class="text-blue-400 font-medium">Internal QC</span>
+                    </div>
+                </div>
+
+                <!-- 3. Kerusakan Mandor -->
+                <div id="widget-kpi-mandor" class="card-executive p-4 sm:p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                            <span>KERUSAKAN MANDOR</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-400 font-medium" id="kpiMandorPct">0.00%</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-white num-font tracking-tight mt-1" id="kpiMandor">0</div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-white/[0.06] text-[11px] text-slate-400 flex items-center justify-between">
+                        <span>Inspeksi Tingkat Mandor</span>
+                        <span class="text-purple-400 font-medium">Supervisory</span>
+                    </div>
+                </div>
+
+                <!-- 4. Gap Variansi -->
+                <div id="widget-kpi-gap" class="card-executive p-4 sm:p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                            <span>ESCAPED DEFECT (GAP)</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 font-medium" id="kpiGapPct">0.0%</span>
+                        </div>
+                        <div class="text-2xl sm:text-3xl font-bold text-amber-400 num-font tracking-tight mt-1" id="kpiGap">0</div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-white/[0.06] text-[11px] text-slate-400 flex items-center justify-between">
+                        <span>Selisih Temuan Pengawas</span>
+                        <span class="text-amber-400 font-medium">Toleransi QC</span>
+                    </div>
+                </div>
+
+                <!-- 5. Best Worker Benchmark -->
+                <div id="widget-kpi-best" class="card-executive p-4 sm:p-5 flex flex-col justify-between border-l-2 border-l-emerald-500">
+                    <div>
+                        <div class="flex items-center justify-between text-xs text-slate-400 font-medium mb-1">
+                            <span>QUALITY BENCHMARK</span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-semibold" id="kpiBestWorkerPct">0.00%</span>
+                        </div>
+                        <div class="text-lg sm:text-xl font-bold text-white tracking-tight mt-1 truncate" id="kpiBestWorker">-</div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-white/[0.06] text-[11px] text-slate-400 flex items-center justify-between">
+                        <span id="kpiBestWorkerLokal">-</span>
+                        <span class="text-emerald-400 font-medium">Operator Terbaik</span>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- STRATEGIC EXECUTIVE INSIGHTS -->
+            <section id="insightsSection" class="card-executive p-5 mt-5">
+                <div class="flex items-center justify-between border-b border-white/[0.06] pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <h3 class="text-sm font-semibold text-white tracking-tight">Ringkasan Evaluasi Kualitas & Efisiensi Produksi</h3>
+                    </div>
+                    <span class="text-[11px] font-mono text-slate-400" id="dateRangeDisplay">Dataset Aktif: 24 Jul – 29 Sep 2026</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                    <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1">
+                        <span class="text-[11px] font-semibold text-blue-400 uppercase tracking-wider block">1. Volume vs Defect</span>
+                        <p class="text-slate-300 leading-relaxed" id="insight1Text">
+                            Pekerja dengan kapasitas produksi tertinggi dievaluasi secara dinamis terhadap rasio cacat telak dan temuan mandor.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1">
+                        <span class="text-[11px] font-semibold text-indigo-400 uppercase tracking-wider block">2. Kriteria Dominan</span>
+                        <p class="text-slate-300 leading-relaxed" id="insight2Text">
+                            8 Kriteria cacat batangan: MEKAR-MINGKUP, MEDOT, dan COWONG menjadi fokus pengawasan utama meja giling.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1">
+                        <span class="text-[11px] font-semibold text-amber-400 uppercase tracking-wider block">3. Inspection Gap</span>
+                        <p class="text-slate-300 leading-relaxed" id="insight3Text">
+                            Variansi antara temuan Mandor vs Telak mengukur efektivitas ketelitian inspeksi awal operator.
+                        </p>
+                    </div>
+
+                    <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] space-y-1">
+                        <span class="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block">4. Benchmark Mutu</span>
+                        <p class="text-slate-300 leading-relaxed" id="insight4Text">
+                            Operator dengan rasio kerusakan terendah dijadikan standar performa mutu untuk operator lain di lokal terkait.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: VISUAL ANALYTICS (CHARTS & CORRELATION) -->
+        <!-- ============================================== -->
+        <section id="chartsSection" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Chart 1: Daily Trend -->
+            <div id="widget-chart-trend" class="card-executive p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">Analisis Tren Harian Kerusakan</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Perbandingan Harian: Cacat Telak vs Mandor</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span class="flex items-center gap-1.5 text-slate-300"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block"></span> Telak</span>
+                        <span class="flex items-center gap-1.5 text-slate-300"><span class="w-2.5 h-2.5 rounded-sm bg-purple-500 inline-block"></span> Mandor</span>
+                    </div>
+                </div>
+                <div class="h-64 w-full relative">
+                    <canvas id="dailyTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Worker Bar Comparison -->
+            <div id="widget-chart-worker" class="card-executive p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">Distribusi Kerusakan per Operator</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Total Kerusakan Telak & Mandor per Pekerja</p>
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-mono px-2 py-0.5 rounded bg-white/[0.04]" id="workerCountBadge">0 Operator</span>
+                </div>
+                <div class="h-64 w-full relative">
+                    <canvas id="workerBarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Defect Criteria Trend Line -->
+            <div id="widget-chart-criteria" class="card-executive p-5 flex flex-col justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-white/[0.06] pb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">Tren Kriteria Kerusakan Spesifik</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Fluktuasi 8 Jenis Cacat Sepanjang Waktu</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="lineCriteriaFilter" onchange="updateDefectLineChart()" class="input-executive text-xs py-1 px-2.5 appearance-none cursor-pointer">
+                            <!-- Populated dynamically -->
+                        </select>
+                        <input type="date" id="lineDateStart" onchange="updateDefectLineChart()" class="input-executive text-[11px] py-1 px-2">
+                        <span class="text-slate-500 text-xs">-</span>
+                        <input type="date" id="lineDateEnd" onchange="updateDefectLineChart()" class="input-executive text-[11px] py-1 px-2">
+                    </div>
+                </div>
+                <div class="h-64 w-full relative">
+                    <canvas id="defectCriteriaChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Scatter Plot Correlation -->
+            <div id="widget-chart-scatter" class="card-executive p-5 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">Korelasi: Volume Garapan vs % Defect</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Matriks Efisiensi Operator: Kapasitas vs Kualitas</p>
+                    </div>
+                    <span class="text-[11px] font-mono text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10">Matriks Mutu</span>
+                </div>
+                <div class="h-64 w-full relative">
+                    <canvas id="scatterChart"></canvas>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 3: MATRIX HEATMAP (TITIK KRITIS LOKAL)    -->
+        <!-- ============================================== -->
+        <section id="heatmapSection" class="card-executive p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.06] pb-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Matriks Titik Kritis Cacat per Lokal & Operator</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Pemetaan 8 Kriteria Kerusakan: Cowong, Papir Kusut, Lem Kurang, Talipan, Muntir, Medot, Atos, Mekar-Mingkup</p>
+                </div>
+                <div class="flex items-center space-x-3 text-xs">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500/20 border border-emerald-500/40"></span> &lt;1.2% (Aman)</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500/20 border border-amber-500/40"></span> 1.2% - 2.0% (Waspada)</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-red-500/20 border border-red-500/40"></span> &gt;2.0% (Kritis)</span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-center border-collapse">
+                    <thead id="heatmapHeader">
+                        <!-- Dynamic Header -->
+                    </thead>
+                    <tbody id="heatmapBody" class="divide-y divide-white/[0.04] text-slate-200">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 4: DETAIL REKAPITULASI (TABEL MASTER)    -->
+        <!-- ============================================== -->
+        <section id="tableSection" class="card-executive p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Master Rekapitulasi Kinerja & Mutu Operator</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Data Komprehensif Operator Telak vs Pengawasan Mandor</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Status Evaluasi:</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400 border border-red-500/30 font-semibold" id="badgeHighRiskLimit">&gt; 2.0% High Risk</span>
+                    <button onclick="exportDataExcel()" class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                        <span>Export Excel</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-white/[0.08] text-slate-400 uppercase font-semibold text-[11px]">
+                            <th class="py-3 px-3">Nama Pekerja</th>
+                            <th class="py-3 px-2 text-center">Lokal</th>
+                            <th class="py-3 px-3">Mandor</th>
+                            <th class="py-3 px-3">Brand</th>
+                            <th class="py-3 px-3 text-right">Total Garapan</th>
+                            <th class="py-3 px-3 text-right">Cacat Telak</th>
+                            <th class="py-3 px-3 text-right">Cacat Mandor</th>
+                            <th class="py-3 px-3 text-right">Gap (Selisih)</th>
+                            <th class="py-3 px-3 text-right">Rata % Telak</th>
+                            <th class="py-3 px-3 text-right">Rata % Mandor</th>
+                            <th class="py-3 px-2 text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="masterTableBody" class="divide-y divide-white/[0.04] text-slate-200">
+                        <!-- Dynamic Injection -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-white/[0.06] text-xs text-slate-400">
+                <span id="rekapTableInfo">Menampilkan 0 Operator</span>
+                <div class="flex items-center space-x-1">
+                    <button class="px-3 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08]" onclick="showToast('Halaman Pertama')">Prev</button>
+                    <span class="px-3 py-1 rounded bg-blue-500/10 text-blue-400 font-semibold">1</span>
+                    <button class="px-3 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08]" onclick="showToast('Halaman Terakhir')">Next</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- VIEW 5: MASTER MANDOR & LOKAL                 -->
+        <!-- ============================================== -->
+        <section id="masterSection" class="card-executive p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-white">Master Data Mandor, Lokal Kerja & Brand</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Tabel Master Penugasan Sektor Pabrik (Terhubung Otomatis ke Laporan Rekap)</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="openAddMasterModal()" class="btn-primary text-xs py-1.5 px-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Tambah Master Baru</span>
+                    </button>
+                    <button onclick="exportMasterDataExcel()" class="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Download Master</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-white/[0.08] text-slate-400 uppercase font-semibold text-[11px]">
+                            <th class="py-3 px-3">No</th>
+                            <th class="py-3 px-3">Nama Lokal</th>
+                            <th class="py-3 px-4">Nama Petugas Mandor</th>
+                            <th class="py-3 px-4">Brand / Merek</th>
+                            <th class="py-3 px-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="masterDataTableBody" class="divide-y divide-white/[0.04] text-slate-200">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- MODAL 1: GOOGLE SPREADSHEET SYNC -->
+    <div id="googleSheetModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="card-executive max-w-xl w-full p-6 space-y-5 border border-white/10 shadow-2xl bg-[#0E1422]">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-white tracking-tight">Database Google Spreadsheet</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Sinkronisasi Cloud Dua Arah (Data Tersimpan Aman)</p>
+                </div>
+                <button onclick="closeGoogleSheetModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Google Apps Script Web App URL</label>
+                    <input type="url" id="sheetWebAppUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="input-executive w-full py-2 px-3 text-xs">
+                    <p class="text-[11px] text-slate-400 mt-1">Masukkan URL Web App hasil deploy dari Google Spreadsheet Anda.</p>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                    <div>
+                        <span class="font-semibold text-white block">Auto-Sync saat Drag & Drop Excel</span>
+                        <span class="text-slate-400 text-[11px]">Simpan otomatis ke Google Spreadsheet setiap upload file baru</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="sheetAutoSyncToggle" class="sr-only peer" checked>
+                        <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex flex-wrap gap-2 pt-2">
+                    <button onclick="saveGoogleSheetSettings()" class="btn-primary">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan URL
+                    </button>
+                    <button onclick="syncWithGoogleSheet()" class="btn-secondary text-blue-400 font-semibold">
+                        <i class="fa-solid fa-cloud-arrow-up mr-1"></i> Kirim Data Sekarang
+                    </button>
+                    <button onclick="fetchFromGoogleSheet()" class="btn-secondary text-emerald-400 font-semibold">
+                        <i class="fa-solid fa-cloud-arrow-down mr-1"></i> Tarik Data dari Cloud
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-white/[0.06] pt-3 flex items-center justify-between text-xs">
+                <span class="text-slate-400">Script Google Apps Script:</span>
+                <button onclick="copyAppsScriptCode()" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-copy"></i> Salin Kode Script
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CUSTOMIZER (UBAH MENU & DASHBOARD SESUAI KEINGINAN) -->
+    <div id="customizerModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="card-executive max-w-2xl w-full p-6 space-y-5 max-h-[88vh] overflow-y-auto border border-white/10 shadow-2xl bg-[#0E1422]">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-white tracking-tight">Kustomisasi Menu & Dashboard</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Atur menu navigasi, widget KPI, dan ambang batas toleransi mutu</p>
+                </div>
+                <button onclick="closeCustomizerModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div class="flex border-b border-white/[0.06] gap-2 text-xs font-semibold pb-1">
+                <button onclick="switchCustomizerTab('tab-menus')" id="tabBtn-menus" class="py-1.5 px-3 border-b-2 border-blue-500 text-blue-400 font-semibold">
+                    Menu Navigasi
+                </button>
+                <button onclick="switchCustomizerTab('tab-widgets')" id="tabBtn-widgets" class="py-1.5 px-3 border-b-2 border-transparent text-slate-400 hover:text-white">
+                    Widget KPI
+                </button>
+                <button onclick="switchCustomizerTab('tab-thresholds')" id="tabBtn-thresholds" class="py-1.5 px-3 border-b-2 border-transparent text-slate-400 hover:text-white">
+                    Batas Mutu
+                </button>
+                <button onclick="switchCustomizerTab('tab-criteria')" id="tabBtn-criteria" class="py-1.5 px-3 border-b-2 border-transparent text-slate-400 hover:text-white">
+                    Kriteria Cacat
+                </button>
+                <button onclick="switchCustomizerTab('tab-identity')" id="tabBtn-identity" class="py-1.5 px-3 border-b-2 border-transparent text-slate-400 hover:text-white">
+                    Identitas Gudang
+                </button>
+            </div>
+
+            <!-- Tab Content 1: Menus -->
+            <div id="tab-menus" class="space-y-3">
+                <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400">Urutkan atau ganti nama menu:</span>
+                    <button onclick="addNewCustomMenu()" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Tambah Menu
+                    </button>
+                </div>
+                <div id="menusManagerList" class="space-y-2"></div>
+            </div>
+
+            <!-- Tab Content 2: Widgets -->
+            <div id="tab-widgets" class="space-y-3 hidden">
+                <p class="text-xs text-slate-400">Pilih indikator KPI yang ditampilkan:</p>
+                <div id="widgetsManagerList" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+            </div>
+
+            <!-- Tab Content 3: Thresholds -->
+            <div id="tab-thresholds" class="space-y-3 hidden text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
+                        <label class="block text-emerald-400 font-semibold">Batas Toleransi Target (% Defect)</label>
+                        <input type="number" id="inputToleranceLimit" step="0.1" min="0" class="input-executive w-full py-1.5 px-2.5">
+                        <p class="text-[11px] text-slate-400">Batas kualitas terbaik (Standar: 1.0%).</p>
+                    </div>
+                    <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1.5">
+                        <label class="block text-red-400 font-semibold">Batas Kritis / High Risk (% Defect)</label>
+                        <input type="number" id="inputHighRiskLimit" step="0.1" min="0" class="input-executive w-full py-1.5 px-2.5">
+                        <p class="text-[11px] text-slate-400">Batas sorot merah di tabel (Standar: 2.0%).</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content 4: Criteria -->
+            <div id="tab-criteria" class="space-y-3 hidden text-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-400">Sesuaikan nama 8 jenis cacat:</span>
+                    <button onclick="addNewDefectCriterion()" class="text-blue-400 hover:underline font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Tambah Kriteria
+                    </button>
+                </div>
+                <div id="criteriaManagerList" class="space-y-2"></div>
+            </div>
+
+            <!-- Tab Content 5: Identity -->
+            <div id="tab-identity" class="space-y-3 hidden text-xs">
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Judul Dashboard</label>
+                    <input type="text" id="inputAppTitle" class="input-executive w-full py-1.5 px-3">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Nama Gudang / Unit</label>
+                    <input type="text" id="inputWarehouseName" class="input-executive w-full py-1.5 px-3">
+                </div>
+            </div>
+
+            <!-- Footer Save -->
+            <div class="flex items-center justify-between border-t border-white/[0.06] pt-4 text-xs">
+                <button onclick="resetCustomizerToDefault()" class="text-slate-400 hover:text-white">
+                    Reset ke Awal
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeCustomizerModal()" class="btn-secondary">Batal</button>
+                    <button onclick="saveCustomizerSettings()" class="btn-primary">Simpan Perubahan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: MASTER DATA ADD/EDIT -->
+    <div id="masterDataModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="card-executive max-w-md w-full p-6 space-y-4 border border-white/10 shadow-2xl bg-[#0E1422]">
+            <div class="flex items-center justify-between border-b border-white/[0.06] pb-3">
+                <h3 class="text-sm font-bold text-white tracking-tight" id="masterModalTitle">Tambah Master Mandor & Lokal</h3>
+                <button onclick="closeMasterModal()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <input type="hidden" id="masterEditIndex" value="-1">
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Nama Lokal Kerja (contoh: 1A, 2B)</label>
+                    <input type="text" id="inputMasterLokal" placeholder="1A" class="input-executive w-full py-1.5 px-3 uppercase">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Nama Petugas Mandor</label>
+                    <input type="text" id="inputMasterMandor" placeholder="M. NIRWANSYAH" class="input-executive w-full py-1.5 px-3">
+                </div>
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Brand / Merek Rokok</label>
+                    <input type="text" id="inputMasterBrand" placeholder="MW, Sukun 2000" class="input-executive w-full py-1.5 px-3">
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-white/[0.06] text-xs">
+                <button onclick="closeMasterModal()" class="btn-secondary">Batal</button>
+                <button onclick="saveMasterItem()" class="btn-primary">Simpan Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- SCRIPTS -->
+    <script src="app.js"></script>
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const icon = document.getElementById('themeIcon');
+            if (document.body.classList.contains('light-mode')) {
+                icon.className = 'fa-solid fa-sun text-xs text-amber-500';
+            } else {
+                icon.className = 'fa-solid fa-moon text-xs text-slate-400';
+            }
+        }
+    </script>
+</body>
+</html>
