@@ -3,32 +3,21 @@
  * PT. SUKUN WARTONO INDONESIA — DIVISI PENGAWASAN MUTU & PRODUKSI
  * =====================================================================
  * Spreadsheet ID: 1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM
- * Link: https://docs.google.com/spreadsheets/d/1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM/edit?usp=sharing
- * 
- * CARA PAKAI (HANYA 1 MENIT):
- * 1. Di Google Spreadsheet Anda, klik menu "Ekstensi" (Extensions) > "Apps Script".
- * 2. Hapus semua kode default, lalu PASTE SELURUH KODE DI BAWAH INI.
- * 3. Klik tombol "Simpan" (ikon Disket).
- * 4. Di bagian atas editor, pada dropdown fungsi pilih "setupSpreadsheetLengkap", lalu klik "Run" (Jalankan).
- *    -> Seketika seluruh Sheet, Kolom, Rumus, dan Master Data akan otomatis terbuat di spreadsheet Anda!
- * 5. Klik tombol biru "Deploy" (Terapkan) > "New deployment" > pilih jenis "Web app".
- *    - Description: Database Produksi SQC-Pro
- *    - Execute as: Me (email Anda)
- *    - Who has access: Anyone (Siapa saja)
- * 6. Klik "Deploy" dan salin Web App URL (akhiran /exec) ke Dashboard web Anda!
+ * Link: https://docs.google.com/spreadsheets/d/1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM/edit
  */
 
 // 1. MENU OTOMATIS DI TOOLBAR SPREADSHEET
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('🏭 MENU SUKUN QC')
-    .addItem('📊 1-Klik Buat / Reset Seluruh Kolom & Template Otomatis', 'setupSpreadsheetLengkap')
+    .addItem('📊 1-Klik Buat / Reset Seluruh Kolom Lengkap', 'setupSpreadsheetLengkap')
+    .addItem('📋 Perbarui Form Giling Gudang 3 Saja', 'setupFormGiling')
     .addSeparator()
     .addItem('ℹ️ Petunjuk Deploy Web App', 'tampilkanPetunjukDeploy')
     .addToUi();
 }
 
-// 2. FUNGSI OTOMATIS: MEMBUAT SELURUH TAB, KOLOM, FORMULA, DAN MASTER DATA
+// 2. FUNGSI UTAMA: MEMBUAT SELURUH TAB, KOLOM, FORMULA, DAN MASTER DATA LENGKAP
 function setupSpreadsheetLengkap() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -49,7 +38,7 @@ function setupSpreadsheetLengkap() {
   ];
   sheetProduksi.appendRow(headersProd);
 
-  // Sample data sesuai file asli
+  // Sample data sesuai file asli PT Sukun
   var sampleRows = [
     ["2026-07-24", "FIDZALIKA ADZANI", "MUSLIKIN", "3B", "MW", 0.9, 28300, 126, 2, 2, 0, 0, 7, 0, 91, "=SUM(H2:O2)", 2472, 0, "=(P2/G2)*100", "=(Q2/G2)*100"],
     ["2026-07-24", "FIDZALIKA ADZANI", "MUSLIKIN", "3B", "MW", 1.0, 54160, 235, 0, 8, 7, 2, 39, 0, 117, "=SUM(H3:O3)", 3592, 0, "=(P3/G3)*100", "=(Q3/G3)*100"],
@@ -61,7 +50,6 @@ function setupSpreadsheetLengkap() {
     sheetProduksi.appendRow(sampleRows[r]);
   }
 
-  // Format Header Biru Tua Elegan
   formatHeaderRange(sheetProduksi, 1, 1, 1, headersProd.length, "#0F172A", "#38BDF8");
   sheetProduksi.setFrozenRows(1);
   autoFitColumns(sheetProduksi, headersProd.length);
@@ -107,20 +95,35 @@ function setupSpreadsheetLengkap() {
   // -------------------------------------------------------------
   // TAB 3: FORM_GILING_GUDANG_3 (Format Meja Giling Gudang 3)
   // -------------------------------------------------------------
+  setupFormGiling();
+
+  // Hapus Sheet default kosong jika ada
+  var defaultSheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("Sheet 1");
+  if (defaultSheet && ss.getSheets().length > 1) {
+    try { ss.deleteSheet(defaultSheet); } catch(e) {}
+  }
+
+  ss.setActiveSheet(sheetProduksi);
+  SpreadsheetApp.getUi().alert("✅ BERHASIL!\n\nSeluruh kolom, formula, 16 Master Mandor, dan Form Kartu Giling Gudang 3 telah 100% lengkap dibuat!");
+}
+
+// 3. FUNGSI KHUSUS: MEMBUAT FORM KARTU GILING GUDANG 3 TANPA ERROR
+function setupFormGiling() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheetGiling = ss.getSheetByName("FORM_GILING_GUDANG_3");
   if (!sheetGiling) {
     sheetGiling = ss.insertSheet("FORM_GILING_GUDANG_3", 2);
   }
   sheetGiling.clear();
 
-  var gilingTop = [
-    ["FORM KERUSAKAN ROKOK BATANGAN GUDANG 3"],
-    [],
-    ["Tanggal", "", "", "Lokal", "", ":", "1A", "", "", "", "", "Quality Control", "", "", "", "Pelaksana Telak"],
-    ["Brand", "", "", "Petugas Mandor", "", ":", "M. NIRWANSYAH", "", "", "", "", "", "", "", "", ""],
-    ["Jumlah Produksi", "", "", "Giling", "", ":", "50000", "", "", "", "", "( Muhamad Syafa Hanif )", "", "", "", "( Fidzalika Adzani )"],
-    [],
-    ["GILING"],
+  var gilingGrid = [
+    ["FORM KERUSAKAN ROKOK BATANGAN GUDANG 3", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["Tanggal", "", "", "Lokal", "", ":", "1A", "", "", "Quality Control", "", "Pelaksana Telak", ""],
+    ["Brand", "", "", "Petugas Mandor", "", ":", "M. NIRWANSYAH", "", "", "", "", "", ""],
+    ["Jumlah Produksi", "", "", "Giling", "", ":", "50000", "", "", "( Muhamad Syafa Hanif )", "", "( Fidzalika Adzani )", ""],
+    ["", "", "", "", "", "", "", "", "", "", "", "", ""],
+    ["GILING", "", "", "", "", "", "", "", "", "", "", "", ""],
     ["NO URUT", "NO KARTU", "N A M A", "CW", "PK", "LK", "TK", "MT", "MD", "AT", "MM", "TOTAL KERUSAKAN", "KETERANGAN"],
     [1, 5626, "Sri Suliyatun", 12, 1, 0, 0, 2, 4, 0, 8, "=SUM(D9:K9)", "OK"],
     [2, 5708, "Fitriana", 8, 0, 1, 0, 1, 3, 0, 6, "=SUM(D10:K10)", "OK"],
@@ -139,45 +142,20 @@ function setupSpreadsheetLengkap() {
     [15, 6418, "Sugiarti", 13, 2, 1, 0, 2, 4, 1, 9, "=SUM(D23:K23)", "OK"],
     [16, 6571, "Kustini", 7, 0, 0, 0, 0, 2, 0, 5, "=SUM(D24:K24)", "Benchmark"],
     [17, 5842, "Khomsatun", 10, 1, 1, 0, 1, 4, 0, 8, "=SUM(D25:K25)", "OK"],
-    [18, 5327, "Zurikah", 11, 2, 0, 0, 1, 3, 0, 8, "=SUM(D26:K26)", "OK"]
+    [18, 5327, "Zurikah", 11, 2, 0, 0, 1, 3, 0, 8, "=SUM(D26:K26)", "OK"],
+    ["", "", "TOTAL KERUSAKAN MEJA", "=SUM(D9:D26)", "=SUM(E9:E26)", "=SUM(F9:F26)", "=SUM(G9:G26)", "=SUM(H9:H26)", "=SUM(I9:I26)", "=SUM(J9:J26)", "=SUM(K9:K26)", "=SUM(L9:L26)", ""]
   ];
-  for (var g = 0; g < gilingTop.length; g++) {
-    sheetGiling.appendRow(gilingTop[g]);
-  }
 
+  sheetGiling.getRange(1, 1, gilingGrid.length, 13).setValues(gilingGrid);
+
+  // Format Tampilan
   sheetGiling.getRange("A1").setFontSize(14).setFontWeight("bold").setFontColor("#0F172A");
   formatHeaderRange(sheetGiling, 8, 1, 1, 13, "#0F172A", "#FBBF24");
+  sheetGiling.getRange(27, 1, 1, 13).setFontWeight("bold").setBackground("#F1F5F9");
   autoFitColumns(sheetGiling, 13);
-
-  // -------------------------------------------------------------
-  // TAB 4: KONFIGURASI
-  // -------------------------------------------------------------
-  var sheetConfig = ss.getSheetByName("KONFIGURASI");
-  if (!sheetConfig) {
-    sheetConfig = ss.insertSheet("KONFIGURASI", 3);
-  }
-  sheetConfig.clear();
-  sheetConfig.appendRow(["Config_Key", "Value", "Keterangan"]);
-  sheetConfig.appendRow(["app_name", "SQC-Pro Executive Dashboard", "Nama Sistem"]);
-  sheetConfig.appendRow(["warehouse", "Gudang 3", "Unit Produksi"]);
-  sheetConfig.appendRow(["tolerance_limit", "1.0", "Batas Target % Cacat"]);
-  sheetConfig.appendRow(["high_risk_limit", "2.0", "Batas Kritis / Merah"]);
-  sheetConfig.appendRow(["last_setup", new Date().toLocaleString("id-ID"), "Waktu Setup Otomatis"]);
-  formatHeaderRange(sheetConfig, 1, 1, 1, 3, "#0F172A", "#E2E8F0");
-  autoFitColumns(sheetConfig, 3);
-
-  // Hapus Sheet default kosong jika ada
-  var defaultSheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("Sheet 1");
-  if (defaultSheet && ss.getSheets().length > 1) {
-    try { ss.deleteSheet(defaultSheet); } catch(e) {}
-  }
-
-  ss.setActiveSheet(sheetProduksi);
-
-  SpreadsheetApp.getUi().alert("✅ BERHASIL!\n\nSeluruh kolom, formula penjumlahan, 16 Master Mandor/Lokal, dan Form Kartu Giling Gudang 3 telah selesai dibuat otomatis di Google Spreadsheet Anda!");
 }
 
-// 3. API ENDPOINTS: DUA ARAH (GET & POST) UNTUK DASHBOARD WEB
+// 4. API ENDPOINTS: DUA ARAH (GET & POST) UNTUK DASHBOARD WEB
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -186,30 +164,18 @@ function doGet(e) {
       timestamp: new Date().toISOString(),
       data: {
         workers: [],
-        master: [],
-        config: null
+        master: []
       }
     };
 
-    // Ambil Data Produksi
     var prodSheet = ss.getSheetByName("DATABASE_PRODUKSI");
     if (prodSheet) {
       result.data.workers = getSheetDataAsJson(prodSheet);
     }
 
-    // Ambil Master Mandor & Lokal
     var masterSheet = ss.getSheetByName("MASTER_LOKAL_MANDOR");
     if (masterSheet) {
       result.data.master = getSheetDataAsJson(masterSheet);
-    }
-
-    // Ambil Konfigurasi
-    var configSheet = ss.getSheetByName("KONFIGURASI");
-    if (configSheet) {
-      var rawCfg = configSheet.getRange("B1").getValue();
-      if (rawCfg && rawCfg.toString().startsWith("{")) {
-        try { result.data.config = JSON.parse(rawCfg); } catch(err) {}
-      }
     }
 
     return ContentService.createTextOutput(JSON.stringify(result))
@@ -228,12 +194,9 @@ function doPost(e) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var postData = JSON.parse(e.postData.contents);
 
-    // Simpan data Workers dari dashboard
     if (postData.workers && Array.isArray(postData.workers)) {
       var prodSheet = ss.getSheetByName("DATABASE_PRODUKSI");
-      if (!prodSheet) {
-        prodSheet = ss.insertSheet("DATABASE_PRODUKSI", 0);
-      }
+      if (!prodSheet) prodSheet = ss.insertSheet("DATABASE_PRODUKSI", 0);
       prodSheet.clear();
 
       var headers = [
@@ -275,19 +238,6 @@ function doPost(e) {
       prodSheet.setFrozenRows(1);
     }
 
-    // Simpan Master Mandor jika ada update
-    if (postData.master && Array.isArray(postData.master)) {
-      var mSheet = ss.getSheetByName("MASTER_LOKAL_MANDOR");
-      if (!mSheet) mSheet = ss.insertSheet("MASTER_LOKAL_MANDOR", 1);
-      mSheet.clear();
-      mSheet.appendRow(["NAMA LOKAL", "NAMA MANDOR", "BRAND", "KETERANGAN"]);
-      var mRows = postData.master.map(function(m) {
-        return [m.lokal || "", m.mandor || "", m.brand || "", "Aktif"];
-      });
-      if (mRows.length > 0) mSheet.getRange(2, 1, mRows.length, 4).setValues(mRows);
-      formatHeaderRange(mSheet, 1, 1, 1, 4, "#0F172A", "#34D399");
-    }
-
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: "Data berhasil disimpan permanen di Google Spreadsheet!"
@@ -301,7 +251,7 @@ function doPost(e) {
   }
 }
 
-// 4. HELPER PARSER & FORMATTING
+// 5. HELPER PARSER & FORMATTING
 function getSheetDataAsJson(sheet) {
   var values = sheet.getDataRange().getValues();
   if (!values || values.length <= 1) return [];
@@ -345,7 +295,7 @@ function tampilkanPetunjukDeploy() {
     '<li>Pilih <b>New deployment</b>.</li>' +
     '<li>Pilih jenis <b>Web app</b>.</li>' +
     '<li>Atur <i>Who has access</i>: <b>Anyone (Siapa saja)</b>.</li>' +
-    '<li>Klik <b>Deploy</b> dan salin URL Web App yang muncul ke dashboard web Anda.</li>' +
+    '<li>Klik <b>Deploy</b> dan salin URL Web App ke dashboard web.</li>' +
     '</ol>'
   ).setWidth(400).setHeight(250);
   SpreadsheetApp.getUi().showModalDialog(html, 'Petunjuk Deploy Web App');
