@@ -90,6 +90,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   initCharts();
   updateSyncBadge();
   switchMainView('kpiSection');
+
+  // Auto-fetch data terbaru dari Google Spreadsheet saat startup jika URL sudah diisi
+  if (appConfig?.googleSheets?.webAppUrl) {
+    fetchFromGoogleSheet(true);
+  }
 });
 
 // Setup Full-window Drag and Drop
@@ -812,10 +817,19 @@ function updateSyncBadge() {
   const badge = document.getElementById('sheetSyncBadge');
   const info = document.getElementById('sheetSyncInfo');
   const dot = document.getElementById('headerSyncDot');
+  const text = document.getElementById('headerSyncText');
   const url = appConfig.googleSheets ? appConfig.googleSheets.webAppUrl : '';
 
   if (url) {
     if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+    if (text) {
+      if (appConfig.googleSheets.lastSync) {
+        const timeStr = new Date(appConfig.googleSheets.lastSync).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        text.innerText = `Sheet: Tersimpan (${timeStr})`;
+      } else {
+        text.innerText = `Sheet: Terhubung`;
+      }
+    }
     if (badge) {
       badge.className = "text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-semibold";
       badge.innerText = "Connected";
@@ -827,6 +841,7 @@ function updateSyncBadge() {
     }
   } else {
     if (dot) dot.className = "w-2 h-2 rounded-full bg-slate-600";
+    if (text) text.innerText = `Sheet: Offline`;
     if (badge) {
       badge.className = "text-[10px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-400";
       badge.innerText = "Offline";
@@ -861,10 +876,17 @@ function saveGoogleSheetSettings() {
   updateSyncBadge();
   closeGoogleSheetModal();
   showToast("Pengaturan Google Spreadsheet Disimpan!");
+  
+  // Langsung lakukan sync pertama
+  if (url) {
+    syncWithGoogleSheet();
+  }
 }
 
 async function syncWithGoogleSheet(isSilent = false) {
   const url = appConfig.googleSheets?.webAppUrl;
+  const btnSave = document.getElementById('btnSaveToCloud');
+
   if (!url) {
     if (!isSilent) {
       openGoogleSheetModal();
@@ -873,6 +895,11 @@ async function syncWithGoogleSheet(isSilent = false) {
     return;
   }
 
+  // Visual feedback on button
+  if (btnSave) {
+    btnSave.disabled = true;
+    btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i><span>Menyimpan ke Sheet...</span>`;
+  }
   if (!isSilent) showToast("Mengirim data ke Google Spreadsheet...");
 
   const payload = {
@@ -883,7 +910,6 @@ async function syncWithGoogleSheet(isSilent = false) {
   };
 
   try {
-    // Sync directly or via Node backend proxy
     let res = null;
     try {
       res = await fetch(`${API_BASE}/api/sync/googlesheet`, {
@@ -892,7 +918,6 @@ async function syncWithGoogleSheet(isSilent = false) {
         body: JSON.stringify({ webAppUrl: url, data: payload })
       });
     } catch (e) {
-      // Fallback direct post
       res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -905,24 +930,48 @@ async function syncWithGoogleSheet(isSilent = false) {
       appConfig.googleSheets.lastSync = new Date().toISOString();
       updateSyncBadge();
       saveAllDataLocally();
-      if (!isSilent) showToast("Sukses! Data tersimpan permanen di Google Spreadsheet!");
+
+      if (btnSave) {
+        btnSave.innerHTML = `<i class="fa-solid fa-check text-xs text-emerald-300"></i><span>Tersimpan!</span>`;
+        setTimeout(() => {
+          btnSave.disabled = false;
+          btnSave.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>`;
+        }, 3000);
+      }
+      if (!isSilent) showToast("✅ Sukses! Data tersimpan permanen di Google Spreadsheet!");
     } else {
+      if (btnSave) {
+        btnSave.disabled = false;
+        btnSave.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>`;
+      }
       if (!isSilent) showToast("Gagal menyimpan ke Google Spreadsheet: " + (data.message || ''));
     }
   } catch (err) {
     console.error("Sync error:", err);
+    if (btnSave) {
+      btnSave.disabled = false;
+      btnSave.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>`;
+    }
     if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet. Periksa koneksi internet atau izin Web App.");
   }
 }
 
-async function fetchFromGoogleSheet() {
+async function fetchFromGoogleSheet(isSilent = false) {
   const url = appConfig.googleSheets?.webAppUrl;
+  const btnFetch = document.getElementById('btnFetchFromCloud');
+  const fetchIcon = document.getElementById('fetchIcon');
+
   if (!url) {
-    showToast("Masukkan URL Google Apps Script terlebih dahulu.");
+    if (!isSilent) {
+      openGoogleSheetModal();
+      showToast("Masukkan URL Google Apps Script terlebih dahulu.");
+    }
     return;
   }
 
-  showToast("Mengambil data terbaru dari Google Spreadsheet...");
+  if (fetchIcon) fetchIcon.classList.add('fa-spin');
+  if (btnFetch) btnFetch.disabled = true;
+  if (!isSilent) showToast("Mengambil data terbaru dari Google Spreadsheet...");
 
   try {
     let res = null;
@@ -934,13 +983,44 @@ async function fetchFromGoogleSheet() {
 
     const json = await res.json();
     if (json.status === 'success' && json.data) {
+      // Normalisasi data workers dari sheet jika ada yang mengetik langsung di Spreadsheet
       if (json.data.workers && json.data.workers.length > 0) {
-        workerDataset = json.data.workers;
+        workerDataset = json.data.workers.map(w => {
+          const name = w.name || w.nama_pekerja || w.nama || '';
+          const lokal = w.lokal || '';
+          const mandor = w.mandor || '';
+          const brand = w.brand || '';
+          const garapan = parseNum(w.garapan !== undefined ? w.garapan : w.total_garapan);
+          const telak = parseNum(w.telak !== undefined ? w.telak : w.kerusakan_telak);
+          const mandorDefect = parseNum(w.mandorDefect !== undefined ? w.mandorDefect : (w.kerusakan_mandor || w.mandor_defect || 0));
+          const pctTelak = w.pctTelak !== undefined ? parseNum(w.pctTelak) : (garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0);
+          const pctMandor = w.pctMandor !== undefined ? parseNum(w.pctMandor) : (garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0);
+
+          const defects = w.defects ? { ...w.defects } : {
+            cowong: parseNum(w.cowong),
+            papir_kusut: parseNum(w.papir_kusut),
+            lem_kurang: parseNum(w.lem_kurang),
+            talipan_kotor: parseNum(w.talipan_kotor),
+            muntir: parseNum(w.muntir),
+            medot: parseNum(w.medot),
+            atos: parseNum(w.atos),
+            mekar_mingkup: parseNum(w.mekar_mingkup)
+          };
+
+          return { name, lokal, mandor, brand, garapan, telak, mandorDefect, pctTelak, pctMandor, defects };
+        }).filter(w => w.name);
+
         activeDataset = [...workerDataset];
       }
+
       if (json.data.master && json.data.master.length > 0) {
-        masterDataset = json.data.master;
+        masterDataset = json.data.master.map(m => ({
+          lokal: m.lokal || m.nama_lokal || '',
+          mandor: m.mandor || m.nama_mandor || '',
+          brand: m.brand || ''
+        })).filter(m => m.lokal || m.mandor);
       }
+
       if (json.data.config) {
         appConfig = json.data.config;
       }
@@ -956,14 +1036,19 @@ async function fetchFromGoogleSheet() {
       updateKPIs();
       updateChartsWithNewData();
       updateSyncBadge();
-      closeGoogleSheetModal();
-      showToast("Data Berhasil Disinkronkan dari Google Spreadsheet!");
+      
+      const modal = document.getElementById('googleSheetModal');
+      if (modal) modal.classList.add('hidden');
+      if (!isSilent) showToast("✅ Data Berhasil Diambil & Diperbarui dari Google Spreadsheet!");
     } else {
-      showToast("Format respons Google Spreadsheet tidak valid.");
+      if (!isSilent) showToast("Format respons Google Spreadsheet tidak valid.");
     }
   } catch (err) {
     console.error("Fetch error:", err);
-    showToast("Gagal menarik data dari Google Spreadsheet.");
+    if (!isSilent) showToast("Gagal menarik data dari Google Spreadsheet.");
+  } finally {
+    if (fetchIcon) fetchIcon.classList.remove('fa-spin');
+    if (btnFetch) btnFetch.disabled = false;
   }
 }
 

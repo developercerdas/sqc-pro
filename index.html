@@ -59,15 +59,28 @@
             <div class="flex items-center flex-wrap gap-2">
                 <!-- Upload Excel Input -->
                 <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" onchange="handleExcelUpload(event)" class="hidden">
-                <button onclick="document.getElementById('excelFileInput').click()" class="btn-primary flex items-center gap-2">
-                    <i class="fa-solid fa-file-arrow-up text-xs"></i>
-                    <span>Drag / Upload Excel</span>
+                <button onclick="document.getElementById('excelFileInput').click()" class="btn-secondary flex items-center gap-1.5" title="Seret atau pilih file Excel">
+                    <i class="fa-solid fa-file-arrow-up text-xs text-blue-400"></i>
+                    <span>Upload Excel</span>
                 </button>
 
-                <button onclick="openGoogleSheetModal()" class="btn-secondary flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400" id="headerSyncDot"></span>
-                    <span>Database Sheet</span>
+                <!-- Tombol Simpan ke Spreadsheet -->
+                <button id="btnSaveToCloud" onclick="syncWithGoogleSheet()" class="btn-primary flex items-center gap-2" title="Kirim & simpan seluruh data ke Google Spreadsheet">
+                    <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
+                    <span>Simpan ke Sheet</span>
                 </button>
+
+                <!-- Tombol Tarik dari Spreadsheet -->
+                <button id="btnFetchFromCloud" onclick="fetchFromGoogleSheet()" class="btn-secondary flex items-center gap-1.5" title="Tarik data terbaru jika ada yang diedit langsung di Spreadsheet">
+                    <i class="fa-solid fa-arrows-rotate text-xs text-emerald-400" id="fetchIcon"></i>
+                    <span>Tarik dari Sheet</span>
+                </button>
+
+                <!-- Status Cloud Sync Badge -->
+                <div id="cloudSyncStatusBadge" onclick="openGoogleSheetModal()" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs bg-white/[0.03] border border-white/[0.08] cursor-pointer hover:border-white/20 transition" title="Klik untuk membuka pengaturan Google Sheet">
+                    <span class="w-2 h-2 rounded-full bg-slate-500" id="headerSyncDot"></span>
+                    <span class="text-[11px] text-slate-400 font-mono" id="headerSyncText">Sheet: Offline</span>
+                </div>
 
                 <button onclick="openCustomizerModal()" class="btn-secondary flex items-center gap-1.5" title="Sesuaikan Tampilan & Menu">
                     <i class="fa-solid fa-sliders text-xs"></i>
