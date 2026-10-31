@@ -65,7 +65,7 @@ const DEFAULT_CONFIG = {
     { key: "mekar_mingkup", label: "MEKAR-MINGKUP", code: "MM", color: "#ff416c", visible: true }
   ],
   googleSheets: {
-    webAppUrl: "",
+    webAppUrl: "https://docs.google.com/spreadsheets/d/1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM/edit",
     autoSync: true,
     lastSync: null
   }
@@ -864,9 +864,41 @@ function closeGoogleSheetModal() {
   document.getElementById('googleSheetModal').classList.add('hidden');
 }
 
+function extractGoogleSheetId(url) {
+  if (!url) return null;
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
+function parseCsvRows(csvText) {
+  const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+  return lines.map(line => {
+    const row = [];
+    let insideQuotes = false;
+    let entry = '';
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        insideQuotes = !insideQuotes;
+      } else if (char === ',' && !insideQuotes) {
+        row.push(entry.trim());
+        entry = '';
+      } else {
+        entry += char;
+      }
+    }
+    row.push(entry.trim());
+    return row.map(v => v.replace(/^"|"$/g, '').trim());
+  });
+}
+
 function saveGoogleSheetSettings() {
-  const url = document.getElementById('sheetWebAppUrlInput').value.trim();
+  let url = document.getElementById('sheetWebAppUrlInput').value.trim();
   const autoSync = document.getElementById('sheetAutoSyncToggle').checked;
+
+  if (!url) {
+    url = "https://docs.google.com/spreadsheets/d/1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM/edit";
+  }
 
   if (!appConfig.googleSheets) appConfig.googleSheets = {};
   appConfig.googleSheets.webAppUrl = url;
@@ -875,16 +907,13 @@ function saveGoogleSheetSettings() {
   saveAllDataLocally();
   updateSyncBadge();
   closeGoogleSheetModal();
-  showToast("Pengaturan Google Spreadsheet Disimpan!");
+  showToast("Pengaturan Disimpan! Menguji koneksi...");
   
-  // Langsung lakukan sync pertama
-  if (url) {
-    syncWithGoogleSheet();
-  }
+  fetchFromGoogleSheet(false);
 }
 
 async function syncWithGoogleSheet(isSilent = false) {
-  const url = appConfig.googleSheets?.webAppUrl;
+  const url = (appConfig.googleSheets?.webAppUrl || '').trim();
   const btnSave = document.getElementById('btnSaveToCloud');
 
   if (!url) {
@@ -895,10 +924,18 @@ async function syncWithGoogleSheet(isSilent = false) {
     return;
   }
 
-  // Visual feedback on button
+  const sheetId = extractGoogleSheetId(url);
+  if (sheetId && !url.includes('script.google.com')) {
+    if (!isSilent) {
+      showToast("ℹ️ Untuk SIMPAN data otomatis dari web ke Google Sheet, diperlukan Web App URL hasil Deploy Apps Script. Sedang untuk TARIK data sudah bisa langsung!");
+      openGoogleSheetModal();
+    }
+    return;
+  }
+
   if (btnSave) {
     btnSave.disabled = true;
-    btnSave.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-xs"></i><span>Menyimpan ke Sheet...</span>`;
+    btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i><span>Menyimpan ke Sheet...</span>';
   }
   if (!isSilent) showToast("Mengirim data ke Google Spreadsheet...");
 
@@ -912,7 +949,7 @@ async function syncWithGoogleSheet(isSilent = false) {
   try {
     let res = null;
     try {
-      res = await fetch(`${API_BASE}/api/sync/googlesheet`, {
+      res = await fetch(API_BASE + '/api/sync/googlesheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webAppUrl: url, data: payload })
@@ -920,7 +957,7 @@ async function syncWithGoogleSheet(isSilent = false) {
     } catch (e) {
       res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
     }
@@ -932,17 +969,17 @@ async function syncWithGoogleSheet(isSilent = false) {
       saveAllDataLocally();
 
       if (btnSave) {
-        btnSave.innerHTML = `<i class="fa-solid fa-check text-xs text-emerald-300"></i><span>Tersimpan!</span>`;
+        btnSave.innerHTML = '<i class="fa-solid fa-check text-xs text-emerald-300"></i><span>Tersimpan!</span>';
         setTimeout(() => {
           btnSave.disabled = false;
-          btnSave.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>`;
+          btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>';
         }, 3000);
       }
       if (!isSilent) showToast("✅ Sukses! Data tersimpan permanen di Google Spreadsheet!");
     } else {
       if (btnSave) {
         btnSave.disabled = false;
-        btnSave.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>`;
+        btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>';
       }
       if (!isSilent) showToast("Gagal menyimpan ke Google Spreadsheet: " + (data.message || ''));
     }
@@ -950,21 +987,26 @@ async function syncWithGoogleSheet(isSilent = false) {
     console.error("Sync error:", err);
     if (btnSave) {
       btnSave.disabled = false;
-      btnSave.innerHTML = `<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>`;
+      btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>';
     }
-    if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet. Periksa koneksi internet atau izin Web App.");
+    if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet.");
   }
 }
 
 async function fetchFromGoogleSheet(isSilent = false) {
-  const url = appConfig.googleSheets?.webAppUrl;
+  let url = (appConfig.googleSheets?.webAppUrl || '').trim();
   const btnFetch = document.getElementById('btnFetchFromCloud');
   const fetchIcon = document.getElementById('fetchIcon');
 
   if (!url) {
+    url = "https://docs.google.com/spreadsheets/d/1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM/edit";
+    if (!appConfig.googleSheets) appConfig.googleSheets = {};
+    appConfig.googleSheets.webAppUrl = url;
+  }
+
+  if (url.includes('script.google.com') && url.includes('/edit')) {
     if (!isSilent) {
-      openGoogleSheetModal();
-      showToast("Masukkan URL Google Apps Script terlebih dahulu.");
+      showToast("⚠️ Link tersebut adalah halaman Editor Apps Script. Mohon klik Deploy > New deployment > Web app, atau gunakan link Google Spreadsheet Anda.");
     }
     return;
   }
@@ -974,16 +1016,91 @@ async function fetchFromGoogleSheet(isSilent = false) {
   if (!isSilent) showToast("Mengambil data terbaru dari Google Spreadsheet...");
 
   try {
+    const sheetId = extractGoogleSheetId(url);
+
+    // Kasus 1: Link Google Spreadsheet biasa (docs.google.com)
+    if (sheetId && !url.includes('script.google.com')) {
+      const prodCsvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=DATABASE_PRODUKSI';
+      const masterCsvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=MASTER_LOKAL_MANDOR';
+
+      const [prodRes, masterRes] = await Promise.all([
+        fetch(prodCsvUrl),
+        fetch(masterCsvUrl).catch(() => null)
+      ]);
+
+      if (!prodRes.ok) throw new Error("Gagal akses sheet (HTTP " + prodRes.status + ")");
+      const prodText = await prodRes.text();
+      const prodRows = parseCsvRows(prodText);
+
+      if (prodRows.length > 1) {
+        workerDataset = prodRows.slice(1).map((r, i) => {
+          const garapan = parseNum(r[6]);
+          const telak = parseNum(r[15]);
+          const mandorDefect = parseNum(r[16]);
+          return {
+            name: r[1] || ('Pekerja ' + (i+1)),
+            tanggal: r[0] || '',
+            mandor: r[2] || '',
+            lokal: r[3] || '',
+            brand: r[4] || '',
+            garapan: garapan,
+            telak: telak,
+            mandorDefect: mandorDefect,
+            pctTelak: garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0,
+            pctMandor: garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0,
+            defects: {
+              cowong: parseNum(r[7]),
+              papir_kusut: parseNum(r[8]),
+              lem_kurang: parseNum(r[9]),
+              talipan_kotor: parseNum(r[10]),
+              muntir: parseNum(r[11]),
+              medot: parseNum(r[12]),
+              atos: parseNum(r[13]),
+              mekar_mingkup: parseNum(r[14])
+            }
+          };
+        }).filter(w => w.name && w.garapan > 0);
+        activeDataset = [...workerDataset];
+      }
+
+      if (masterRes && masterRes.ok) {
+        const masterText = await masterRes.text();
+        const masterRows = parseCsvRows(masterText);
+        if (masterRows.length > 1) {
+          masterDataset = masterRows.slice(1).map(r => ({
+            lokal: r[0] || '',
+            mandor: r[1] || '',
+            brand: r[2] || ''
+          })).filter(m => m.lokal || m.mandor);
+        }
+      }
+
+      appConfig.googleSheets.lastSync = new Date().toISOString();
+      saveAllDataLocally();
+      applyAppConfig();
+      renderNavigationMenus();
+      renderMasterDataTable();
+      populateFilterOptions();
+      renderMasterTable();
+      renderHeatmapTable();
+      updateKPIs();
+      updateChartsWithNewData();
+      updateSyncBadge();
+
+      if (!isSilent) showToast("✅ Berhasil terhubung & data termuat dari Google Spreadsheet!");
+      return;
+    }
+
+    // Kasus 2: Link Web App Apps Script (script.google.com/macros/s/.../exec)
     let res = null;
     try {
-      res = await fetch(`${API_BASE}/api/sync/googlesheet?url=${encodeURIComponent(url)}`);
+      res = await fetch(API_BASE + '/api/sync/googlesheet?url=' + encodeURIComponent(url));
     } catch (e) {
       res = await fetch(url);
     }
 
     const json = await res.json();
     if (json.status === 'success' && json.data) {
-      // Normalisasi data workers dari sheet jika ada yang mengetik langsung di Spreadsheet
       if (json.data.workers && json.data.workers.length > 0) {
         workerDataset = json.data.workers.map(w => {
           const name = w.name || w.nama_pekerja || w.nama || '';
@@ -1021,10 +1138,6 @@ async function fetchFromGoogleSheet(isSilent = false) {
         })).filter(m => m.lokal || m.mandor);
       }
 
-      if (json.data.config) {
-        appConfig = json.data.config;
-      }
-
       appConfig.googleSheets.lastSync = new Date().toISOString();
       saveAllDataLocally();
       applyAppConfig();
@@ -1036,16 +1149,14 @@ async function fetchFromGoogleSheet(isSilent = false) {
       updateKPIs();
       updateChartsWithNewData();
       updateSyncBadge();
-      
-      const modal = document.getElementById('googleSheetModal');
-      if (modal) modal.classList.add('hidden');
-      if (!isSilent) showToast("✅ Data Berhasil Diambil & Diperbarui dari Google Spreadsheet!");
+
+      if (!isSilent) showToast("✅ Data Berhasil Diambil dari Web App Google Spreadsheet!");
     } else {
-      if (!isSilent) showToast("Format respons Google Spreadsheet tidak valid.");
+      if (!isSilent) showToast("Format respons Google Apps Script tidak valid.");
     }
   } catch (err) {
     console.error("Fetch error:", err);
-    if (!isSilent) showToast("Gagal menarik data dari Google Spreadsheet.");
+    if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet. Periksa URL atau koneksi internet.");
   } finally {
     if (fetchIcon) fetchIcon.classList.remove('fa-spin');
     if (btnFetch) btnFetch.disabled = false;
