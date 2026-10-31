@@ -13,6 +13,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(express.static(PUBLIC_DIR));
+app.use(express.static(__dirname));
 
 // Pastikan folder data ada
 if (!fs.existsSync(DATA_DIR)) {

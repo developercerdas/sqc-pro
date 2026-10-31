@@ -146,7 +146,7 @@ async function loadInitialData() {
     if (res.ok) {
       const json = await res.json();
       if (json.status === 'success' && json.data) {
-        appConfig = json.data.config && Object.keys(json.data.config).length > 0 ? json.data.config : DEFAULT_CONFIG;
+        appConfig = json.data.config && Object.keys(json.data.config).length > 0 ? json.data.config : null;
         masterDataset = Array.isArray(json.data.master) ? json.data.master : [];
         if (json.data.database && json.data.database.workers) {
           workerDataset = json.data.database.workers;
@@ -154,9 +154,39 @@ async function loadInitialData() {
           defectTimeSeriesData = json.data.database.defectTimeSeries || [];
         }
       }
+    } else {
+      // Fallback untuk GitHub Pages (Static Hosting): baca langsung file JSON di folder data/
+      try {
+        const [dbRes, masterRes, cfgRes] = await Promise.all([
+          fetch('data/database.json').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('data/master_lokal_mandor.json').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('data/config.json').then(r => r.ok ? r.json() : null).catch(() => null)
+        ]);
+        if (cfgRes) appConfig = cfgRes;
+        if (masterRes) masterDataset = masterRes;
+        if (dbRes && dbRes.workers) {
+          workerDataset = dbRes.workers;
+          dailyTrendData = dbRes.dailyTrend || [];
+          defectTimeSeriesData = dbRes.defectTimeSeries || [];
+        }
+      } catch (e) {}
     }
   } catch (err) {
-    console.warn("Node.js API unavailable, using local persistence / defaults:", err);
+    console.warn("Node.js API unavailable, mencoba static JSON / localStorage:", err);
+    try {
+      const [dbRes, masterRes, cfgRes] = await Promise.all([
+        fetch('data/database.json').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('data/master_lokal_mandor.json').then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch('data/config.json').then(r => r.ok ? r.json() : null).catch(() => null)
+      ]);
+      if (cfgRes) appConfig = cfgRes;
+      if (masterRes) masterDataset = masterRes;
+      if (dbRes && dbRes.workers) {
+        workerDataset = dbRes.workers;
+        dailyTrendData = dbRes.dailyTrend || [];
+        defectTimeSeriesData = dbRes.defectTimeSeries || [];
+      }
+    } catch (e) {}
   }
 
   // Fallback to localStorage if backend was empty
