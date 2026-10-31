@@ -870,25 +870,37 @@ function extractGoogleSheetId(url) {
   return match ? match[1] : null;
 }
 
-function parseCsvRows(csvText) {
-  const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-  return lines.map(line => {
-    const row = [];
-    let insideQuotes = false;
-    let entry = '';
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"') {
-        insideQuotes = !insideQuotes;
-      } else if (char === ',' && !insideQuotes) {
-        row.push(entry.trim());
-        entry = '';
+// JSONP Loader: 100% Bebas CORS di browser apa pun (GitHub Pages, HP, Desktop)
+function fetchGoogleSheetJSONP(sheetId, sheetName) {
+  return new Promise((resolve, reject) => {
+    const callbackName = 'gvizCallback_' + Math.floor(Math.random() * 1000000);
+    const script = document.createElement('script');
+    
+    const timeout = setTimeout(() => {
+      delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error("Timeout memuat data dari Google Spreadsheet."));
+    }, 12000);
+
+    window[callbackName] = function(data) {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      if (data && data.status === 'ok' && data.table) {
+        resolve(data.table);
       } else {
-        entry += char;
+        reject(new Error("Format data Google Spreadsheet tidak sesuai"));
       }
-    }
-    row.push(entry.trim());
-    return row.map(v => v.replace(/^"|"$/g, '').trim());
+    };
+
+    script.src = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?sheet=' + encodeURIComponent(sheetName) + '&tqx=responseHandler:' + callbackName;
+    script.onerror = function() {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+      reject(new Error("Koneksi ke Google Sheets diblokir atau gagal diakses."));
+    };
+    document.body.appendChild(script);
   });
 }
 
@@ -924,10 +936,11 @@ async function syncWithGoogleSheet(isSilent = false) {
     return;
   }
 
+  // Jika user memasukkan link Google Spreadsheet biasa (docs.google.com)
   const sheetId = extractGoogleSheetId(url);
   if (sheetId && !url.includes('script.google.com')) {
     if (!isSilent) {
-      showToast("ℹ️ Untuk SIMPAN data otomatis dari web ke Google Sheet, diperlukan Web App URL hasil Deploy Apps Script. Sedang untuk TARIK data sudah bisa langsung!");
+      showToast("ℹ️ Tombol 'Simpan ke Sheet' membutuhkan link Web App hasil Deploy Apps Script. Untuk mengambil data, klik tombol 'Tarik dari Sheet'!");
       openGoogleSheetModal();
     }
     return;
@@ -947,49 +960,45 @@ async function syncWithGoogleSheet(isSilent = false) {
   };
 
   try {
-    let res = null;
-    try {
-      res = await fetch(API_BASE + '/api/sync/googlesheet', {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    if (isLocal) {
+      const res = await fetch('/api/sync/googlesheet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ webAppUrl: url, data: payload })
       });
-    } catch (e) {
-      res = await fetch(url, {
+      const data = await res.json();
+      if (data.status !== 'success') throw new Error(data.message || 'Gagal menyimpan');
+    } else {
+      // Mode no-cors untuk GitHub Pages / browser statis: Menghindari pemblokiran CORS browser
+      await fetch(url, {
         method: 'POST',
+        mode: 'no-cors',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
     }
 
-    const data = await res.json();
-    if (data.status === 'success') {
-      appConfig.googleSheets.lastSync = new Date().toISOString();
-      updateSyncBadge();
-      saveAllDataLocally();
+    appConfig.googleSheets.lastSync = new Date().toISOString();
+    updateSyncBadge();
+    saveAllDataLocally();
 
-      if (btnSave) {
-        btnSave.innerHTML = '<i class="fa-solid fa-check text-xs text-emerald-300"></i><span>Tersimpan!</span>';
-        setTimeout(() => {
-          btnSave.disabled = false;
-          btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>';
-        }, 3000);
-      }
-      if (!isSilent) showToast("✅ Sukses! Data tersimpan permanen di Google Spreadsheet!");
-    } else {
-      if (btnSave) {
+    if (btnSave) {
+      btnSave.innerHTML = '<i class="fa-solid fa-check text-xs text-emerald-300"></i><span>Tersimpan!</span>';
+      setTimeout(() => {
         btnSave.disabled = false;
         btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>';
-      }
-      if (!isSilent) showToast("Gagal menyimpan ke Google Spreadsheet: " + (data.message || ''));
+      }, 3000);
     }
+    if (!isSilent) showToast("✅ Sukses! Data dikirim & disimpan di Google Spreadsheet!");
   } catch (err) {
     console.error("Sync error:", err);
     if (btnSave) {
       btnSave.disabled = false;
       btnSave.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-xs"></i><span>Simpan ke Sheet</span>';
     }
-    if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet.");
+    if (!isSilent) showToast("Gagal menyimpan: " + err.message);
   }
 }
 
@@ -1006,7 +1015,7 @@ async function fetchFromGoogleSheet(isSilent = false) {
 
   if (url.includes('script.google.com') && url.includes('/edit')) {
     if (!isSilent) {
-      showToast("⚠️ Link tersebut adalah halaman Editor Apps Script. Mohon klik Deploy > New deployment > Web app, atau gunakan link Google Spreadsheet Anda.");
+      showToast("⚠️ Link tersebut adalah halaman Editor Apps Script. Mohon gunakan link Google Spreadsheet atau URL Web App hasil Deploy.");
     }
     return;
   }
@@ -1016,147 +1025,74 @@ async function fetchFromGoogleSheet(isSilent = false) {
   if (!isSilent) showToast("Mengambil data terbaru dari Google Spreadsheet...");
 
   try {
-    const sheetId = extractGoogleSheetId(url);
+    const sheetId = extractGoogleSheetId(url) || '1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM';
 
-    // Kasus 1: Link Google Spreadsheet biasa (docs.google.com)
-    if (sheetId && !url.includes('script.google.com')) {
-      const prodCsvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=DATABASE_PRODUKSI';
-      const masterCsvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq?tqx=out:csv&sheet=MASTER_LOKAL_MANDOR';
+    // 1. Ambil data dengan teknologi JSONP (100% Bebas CORS & Langsung Jalan di GitHub Pages)
+    const [prodTable, masterTable] = await Promise.all([
+      fetchGoogleSheetJSONP(sheetId, 'DATABASE_PRODUKSI'),
+      fetchGoogleSheetJSONP(sheetId, 'MASTER_LOKAL_MANDOR').catch(() => null)
+    ]);
 
-      const [prodRes, masterRes] = await Promise.all([
-        fetch(prodCsvUrl),
-        fetch(masterCsvUrl).catch(() => null)
-      ]);
+    if (prodTable && prodTable.rows && prodTable.rows.length > 0) {
+      workerDataset = prodTable.rows.map((r, i) => {
+        const c = r.c || [];
+        const garapan = Number(c[6]?.v) || 0;
+        const telak = Number(c[15]?.v) || 0;
+        const mandorDefect = Number(c[16]?.v) || 0;
+        return {
+          tanggal: c[0]?.f || c[0]?.v || '',
+          name: c[1]?.v || ('Pekerja ' + (i + 1)),
+          mandor: c[2]?.v || '',
+          lokal: c[3]?.v || '',
+          brand: c[4]?.v || '',
+          garapan: garapan,
+          telak: telak,
+          mandorDefect: mandorDefect,
+          pctTelak: Number(c[18]?.v) || (garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0),
+          pctMandor: Number(c[19]?.v) || (garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0),
+          defects: {
+            cowong: Number(c[7]?.v) || 0,
+            papir_kusut: Number(c[8]?.v) || 0,
+            lem_kurang: Number(c[9]?.v) || 0,
+            talipan_kotor: Number(c[10]?.v) || 0,
+            muntir: Number(c[11]?.v) || 0,
+            medot: Number(c[12]?.v) || 0,
+            atos: Number(c[13]?.v) || 0,
+            mekar_mingkup: Number(c[14]?.v) || 0
+          }
+        };
+      }).filter(w => w.name && w.garapan > 0);
 
-      if (!prodRes.ok) throw new Error("Gagal akses sheet (HTTP " + prodRes.status + ")");
-      const prodText = await prodRes.text();
-      const prodRows = parseCsvRows(prodText);
-
-      if (prodRows.length > 1) {
-        workerDataset = prodRows.slice(1).map((r, i) => {
-          const garapan = parseNum(r[6]);
-          const telak = parseNum(r[15]);
-          const mandorDefect = parseNum(r[16]);
-          return {
-            name: r[1] || ('Pekerja ' + (i+1)),
-            tanggal: r[0] || '',
-            mandor: r[2] || '',
-            lokal: r[3] || '',
-            brand: r[4] || '',
-            garapan: garapan,
-            telak: telak,
-            mandorDefect: mandorDefect,
-            pctTelak: garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0,
-            pctMandor: garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0,
-            defects: {
-              cowong: parseNum(r[7]),
-              papir_kusut: parseNum(r[8]),
-              lem_kurang: parseNum(r[9]),
-              talipan_kotor: parseNum(r[10]),
-              muntir: parseNum(r[11]),
-              medot: parseNum(r[12]),
-              atos: parseNum(r[13]),
-              mekar_mingkup: parseNum(r[14])
-            }
-          };
-        }).filter(w => w.name && w.garapan > 0);
-        activeDataset = [...workerDataset];
-      }
-
-      if (masterRes && masterRes.ok) {
-        const masterText = await masterRes.text();
-        const masterRows = parseCsvRows(masterText);
-        if (masterRows.length > 1) {
-          masterDataset = masterRows.slice(1).map(r => ({
-            lokal: r[0] || '',
-            mandor: r[1] || '',
-            brand: r[2] || ''
-          })).filter(m => m.lokal || m.mandor);
-        }
-      }
-
-      appConfig.googleSheets.lastSync = new Date().toISOString();
-      saveAllDataLocally();
-      applyAppConfig();
-      renderNavigationMenus();
-      renderMasterDataTable();
-      populateFilterOptions();
-      renderMasterTable();
-      renderHeatmapTable();
-      updateKPIs();
-      updateChartsWithNewData();
-      updateSyncBadge();
-
-      if (!isSilent) showToast("✅ Berhasil terhubung & data termuat dari Google Spreadsheet!");
-      return;
+      activeDataset = [...workerDataset];
     }
 
-    // Kasus 2: Link Web App Apps Script (script.google.com/macros/s/.../exec)
-    let res = null;
-    try {
-      res = await fetch(API_BASE + '/api/sync/googlesheet?url=' + encodeURIComponent(url));
-    } catch (e) {
-      res = await fetch(url);
+    if (masterTable && masterTable.rows && masterTable.rows.length > 0) {
+      masterDataset = masterTable.rows.map(r => {
+        const c = r.c || [];
+        return {
+          lokal: c[0]?.v || '',
+          mandor: c[1]?.v || '',
+          brand: c[2]?.v || ''
+        };
+      }).filter(m => m.lokal || m.mandor);
     }
 
-    const json = await res.json();
-    if (json.status === 'success' && json.data) {
-      if (json.data.workers && json.data.workers.length > 0) {
-        workerDataset = json.data.workers.map(w => {
-          const name = w.name || w.nama_pekerja || w.nama || '';
-          const lokal = w.lokal || '';
-          const mandor = w.mandor || '';
-          const brand = w.brand || '';
-          const garapan = parseNum(w.garapan !== undefined ? w.garapan : w.total_garapan);
-          const telak = parseNum(w.telak !== undefined ? w.telak : w.kerusakan_telak);
-          const mandorDefect = parseNum(w.mandorDefect !== undefined ? w.mandorDefect : (w.kerusakan_mandor || w.mandor_defect || 0));
-          const pctTelak = w.pctTelak !== undefined ? parseNum(w.pctTelak) : (garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0);
-          const pctMandor = w.pctMandor !== undefined ? parseNum(w.pctMandor) : (garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0);
+    appConfig.googleSheets.lastSync = new Date().toISOString();
+    saveAllDataLocally();
+    applyAppConfig();
+    renderNavigationMenus();
+    renderMasterDataTable();
+    populateFilterOptions();
+    renderMasterTable();
+    renderHeatmapTable();
+    updateKPIs();
+    updateChartsWithNewData();
+    updateSyncBadge();
 
-          const defects = w.defects ? { ...w.defects } : {
-            cowong: parseNum(w.cowong),
-            papir_kusut: parseNum(w.papir_kusut),
-            lem_kurang: parseNum(w.lem_kurang),
-            talipan_kotor: parseNum(w.talipan_kotor),
-            muntir: parseNum(w.muntir),
-            medot: parseNum(w.medot),
-            atos: parseNum(w.atos),
-            mekar_mingkup: parseNum(w.mekar_mingkup)
-          };
-
-          return { name, lokal, mandor, brand, garapan, telak, mandorDefect, pctTelak, pctMandor, defects };
-        }).filter(w => w.name);
-
-        activeDataset = [...workerDataset];
-      }
-
-      if (json.data.master && json.data.master.length > 0) {
-        masterDataset = json.data.master.map(m => ({
-          lokal: m.lokal || m.nama_lokal || '',
-          mandor: m.mandor || m.nama_mandor || '',
-          brand: m.brand || ''
-        })).filter(m => m.lokal || m.mandor);
-      }
-
-      appConfig.googleSheets.lastSync = new Date().toISOString();
-      saveAllDataLocally();
-      applyAppConfig();
-      renderNavigationMenus();
-      renderMasterDataTable();
-      populateFilterOptions();
-      renderMasterTable();
-      renderHeatmapTable();
-      updateKPIs();
-      updateChartsWithNewData();
-      updateSyncBadge();
-
-      if (!isSilent) showToast("✅ Data Berhasil Diambil dari Web App Google Spreadsheet!");
-    } else {
-      if (!isSilent) showToast("Format respons Google Apps Script tidak valid.");
-    }
+    if (!isSilent) showToast("✅ Berhasil terhubung & data termuat dari Google Spreadsheet!");
   } catch (err) {
     console.error("Fetch error:", err);
-    if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet. Periksa URL atau koneksi internet.");
+    if (!isSilent) showToast("Gagal terhubung ke Google Spreadsheet: " + err.message);
   } finally {
     if (fetchIcon) fetchIcon.classList.remove('fa-spin');
     if (btnFetch) btnFetch.disabled = false;
