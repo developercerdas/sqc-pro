@@ -254,17 +254,29 @@ function applyAppConfig() {
 
   // Identity
   if (appConfig.app) {
-    document.getElementById('pageTitle').innerText = appConfig.app.title || "Executive Dashboard";
-    document.getElementById('headerAppTitle').innerText = appConfig.app.title || "Executive Dashboard";
-    document.getElementById('sidebarAppTitle').innerText = (appConfig.app.title || "Defect Analytics").split(" ")[0] + " Analytics";
-    document.getElementById('headerAppSubtitle').innerText = appConfig.app.subtitle || "";
-    document.getElementById('headerWarehouseBadge').innerText = appConfig.app.warehouse || "Gudang 3";
-    document.getElementById('sidebarWarehouseLabel').innerText = (appConfig.app.warehouse || "Gudang 3") + " BI";
+    const elPageTitle = document.getElementById('pageTitle');
+    if (elPageTitle) elPageTitle.innerText = appConfig.app.title || "Executive Dashboard";
+
+    const elHeaderTitle = document.getElementById('headerAppTitle');
+    if (elHeaderTitle) elHeaderTitle.innerText = appConfig.app.title || "Executive Dashboard";
+
+    const elSidebarTitle = document.getElementById('sidebarAppTitle');
+    if (elSidebarTitle) elSidebarTitle.innerText = (appConfig.app.title || "Defect Analytics").split(" ")[0] + " Analytics";
+
+    const elHeaderSub = document.getElementById('headerAppSubtitle');
+    if (elHeaderSub) elHeaderSub.innerText = appConfig.app.subtitle || "";
+
+    const elBadge = document.getElementById('headerWarehouseBadge');
+    if (elBadge) elBadge.innerText = appConfig.app.warehouse || "Gudang 3";
+
+    const elSidebarWh = document.getElementById('sidebarWarehouseLabel');
+    if (elSidebarWh) elSidebarWh.innerText = (appConfig.app.warehouse || "Gudang 3") + " BI";
   }
 
   // Thresholds
   if (appConfig.thresholds) {
-    document.getElementById('badgeHighRiskLimit').innerText = `> ${appConfig.thresholds.highRiskLimit}% High Risk`;
+    const elRisk = document.getElementById('badgeHighRiskLimit');
+    if (elRisk) elRisk.innerText = `> ${appConfig.thresholds.highRiskLimit}% High Risk`;
   }
 
   // Widgets Visibility
@@ -1346,20 +1358,28 @@ function addNewDefectCriterion() {
 }
 
 function renderCustomizerIdentity() {
-  document.getElementById('inputAppTitle').value = appConfig.app?.title || '';
-  document.getElementById('inputAppSubtitle').value = appConfig.app?.subtitle || '';
-  document.getElementById('inputWarehouseName').value = appConfig.app?.warehouse || '';
+  const elTitle = document.getElementById('inputAppTitle');
+  if (elTitle) elTitle.value = appConfig.app?.title || '';
+  const elSub = document.getElementById('inputAppSubtitle');
+  if (elSub) elSub.value = appConfig.app?.subtitle || '';
+  const elWh = document.getElementById('inputWarehouseName');
+  if (elWh) elWh.value = appConfig.app?.warehouse || '';
 }
 
 function saveCustomizerSettings() {
   if (!appConfig.thresholds) appConfig.thresholds = {};
-  appConfig.thresholds.toleranceLimit = parseFloat(document.getElementById('inputToleranceLimit').value) || 1.0;
-  appConfig.thresholds.highRiskLimit = parseFloat(document.getElementById('inputHighRiskLimit').value) || 2.0;
+  const elTol = document.getElementById('inputToleranceLimit');
+  if (elTol) appConfig.thresholds.toleranceLimit = parseFloat(elTol.value) || 1.0;
+  const elRisk = document.getElementById('inputHighRiskLimit');
+  if (elRisk) appConfig.thresholds.highRiskLimit = parseFloat(elRisk.value) || 2.0;
 
   if (!appConfig.app) appConfig.app = {};
-  appConfig.app.title = document.getElementById('inputAppTitle').value;
-  appConfig.app.subtitle = document.getElementById('inputAppSubtitle').value;
-  appConfig.app.warehouse = document.getElementById('inputWarehouseName').value;
+  const elTitle = document.getElementById('inputAppTitle');
+  if (elTitle) appConfig.app.title = elTitle.value;
+  const elSub = document.getElementById('inputAppSubtitle');
+  if (elSub) appConfig.app.subtitle = elSub.value;
+  const elWh = document.getElementById('inputWarehouseName');
+  if (elWh) appConfig.app.warehouse = elWh.value;
 
   applyAppConfig();
   renderNavigationMenus();
