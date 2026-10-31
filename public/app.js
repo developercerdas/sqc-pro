@@ -795,6 +795,16 @@ function parseStandardRekapSheet(matrix) {
   return false;
 }
 
+function openGuideModal() {
+  const modal = document.getElementById('guideModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeGuideModal() {
+  const modal = document.getElementById('guideModal');
+  if (modal) modal.classList.add('hidden');
+}
+
 // ==========================================
 // 4. GOOGLE SPREADSHEET 2-WAY SYNC
 // ==========================================
