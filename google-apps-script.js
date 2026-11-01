@@ -1,191 +1,250 @@
 /**
- * GOOGLE APPS SCRIPT DATABASE BACKEND & AUTOMATIC TEMPLATE GENERATOR
+ * GOOGLE APPS SCRIPT MULTI-TAB INPUT MANDOR & AUTO-DATABASE REKAP
  * PT. SUKUN WARTONO INDONESIA — DIVISI PENGAWASAN MUTU & PRODUKSI
  * =====================================================================
- * Spreadsheet ID: 1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM
- * Link: https://docs.google.com/spreadsheets/d/1SxLbYUQQ1lDrr9diGAc7Z3WJZP4_pCwnNdCEdQ9vbMM/edit
+ * ARSITEKTUR SISTEM:
+ * 1. Setiap Mandor memiliki TAB SENDIRI untuk input harian (misal: "1A - M. NIRWANSYAH")
+ * 2. Mandor HANYA mengisi di tab mereka masing-masing (sangat aman, tidak saling timpa)
+ * 3. Tab "DATABASE_PRODUKSI" otomatis ter-link secara REAL-TIME merangkum semua tab mandor
+ * 4. Dashboard Web SQC-Pro membaca dari DATABASE_PRODUKSI dengan Auto-Refresh 30 detik!
  */
 
-// 1. MENU OTOMATIS DI TOOLBAR SPREADSHEET
+// 1. MENU TOOLBAR DI GOOGLE SPREADSHEET
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('🏭 MENU SUKUN QC')
-    .addItem('📊 1-Klik Buat / Reset Seluruh Kolom Lengkap', 'setupSpreadsheetLengkap')
-    .addItem('📋 Perbarui Form Giling Gudang 3 Saja', 'setupFormGiling')
+    .addItem('🚀 1-Klik Buat 16 Tab Input Mandor + Database Rekap Otomatis', 'setupSistemMultiTabMandor')
+    .addItem('🔄 Sinkronkan / Rekap Ulang Semua Tab Mandor', 'rekapSemuaTabMandor')
     .addSeparator()
     .addItem('ℹ️ Petunjuk Deploy Web App', 'tampilkanPetunjukDeploy')
     .addToUi();
 }
 
-// 2. FUNGSI UTAMA: MEMBUAT SELURUH TAB, KOLOM, FORMULA, DAN MASTER DATA LENGKAP
-function setupSpreadsheetLengkap() {
+// 2. FUNGSI UTAMA: MEMBUAT 16 TAB MANDOR + TAB DATABASE OTOMATIS
+function setupSistemMultiTabMandor() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // -------------------------------------------------------------
-  // TAB 1: DATABASE_PRODUKSI (Input Rekap Cacat Harian)
-  // -------------------------------------------------------------
-  var sheetProduksi = ss.getSheetByName("DATABASE_PRODUKSI");
-  if (!sheetProduksi) {
-    sheetProduksi = ss.insertSheet("DATABASE_PRODUKSI", 0);
+  var daftarMandor = [
+  {
+    "lokal": "1A",
+    "mandor": "M. NIRWANSYAH",
+    "brand": "MW"
+  },
+  {
+    "lokal": "1B",
+    "mandor": "SABILI ABIDUL H.",
+    "brand": "KS New"
+  },
+  {
+    "lokal": "1C",
+    "mandor": "LUSI M.",
+    "brand": "Gemilang"
+  },
+  {
+    "lokal": "1D",
+    "mandor": "EKA HAPPY",
+    "brand": "Istimea"
+  },
+  {
+    "lokal": "1E",
+    "mandor": "JANNAH",
+    "brand": "Abu-abu"
+  },
+  {
+    "lokal": "1F",
+    "mandor": "NOOR SULIKAN.",
+    "brand": "Orange Fresh"
+  },
+  {
+    "lokal": "2A",
+    "mandor": "M. NAUFAL A.",
+    "brand": "SSB"
+  },
+  {
+    "lokal": "2B",
+    "mandor": "M. NURDIN",
+    "brand": "Premiere"
+  },
+  {
+    "lokal": "2C",
+    "mandor": "ALI MAHMUD A.",
+    "brand": "Sukun 2000"
+  },
+  {
+    "lokal": "2D",
+    "mandor": "CHOFIFAH",
+    "brand": "Intan"
+  },
+  {
+    "lokal": "2E",
+    "mandor": "SUWARSIH",
+    "brand": "Biru Sapphiere"
+  },
+  {
+    "lokal": "2F",
+    "mandor": "MURYATI",
+    "brand": "MW"
+  },
+  {
+    "lokal": "3A",
+    "mandor": "PURYANI",
+    "brand": "Intan"
+  },
+  {
+    "lokal": "3B",
+    "mandor": "MUSLIKIN",
+    "brand": "MW"
+  },
+  {
+    "lokal": "3C",
+    "mandor": "PIPIT P.",
+    "brand": "Gemilang"
+  },
+  {
+    "lokal": "3D",
+    "mandor": "ZUMROH",
+    "brand": "Istimea"
   }
-  sheetProduksi.clear();
+];
 
-  var headersProd = [
+  var headers = [
     "LOKAL", "TANGGAL", "NAMA MANDOR", "NAMA TELAK", "BRAND", 
     "ABSENSI GILING", "GARAPAN", "COWONG", "PAPIR KUSUT", "LEM KURANG", 
     "TALIPAN KOTOR", "MUNTIR", "MEDOT", "ATOS", "MEKAR-MINGKUP", 
     "KERUSAKAN TELAK", "KERUSAKAN MANDOR", "KEKURANGAN PAPIR", "% RASIO TELAK", "% RASIO MANDOR"
   ];
-  sheetProduksi.appendRow(headersProd);
 
-  // Sample data sesuai file asli PT Sukun
-  var sampleRows = [
-    ["3B", "2026-07-24", "MUSLIKIN", "FIDZALIKA ADZANI", "MW", 0.9, 28300, 126, 2, 2, 0, 0, 7, 0, 91, "=SUM(H2:O2)", 2472, 0, "=(P2/G2)*100", "=(Q2/G2)*100"],
-    ["3B", "2026-07-24", "MUSLIKIN", "FIDZALIKA ADZANI", "MW", 1.0, 54160, 235, 0, 8, 7, 2, 39, 0, 117, "=SUM(H3:O3)", 3592, 0, "=(P3/G3)*100", "=(Q3/G3)*100"],
-    ["1B", "2026-07-25", "SABILI ABIDUL H.", "SITI SOLIHATI", "KS New", 1.0, 45000, 110, 24, 35, 19, 34, 162, 46, 217, "=SUM(H4:O4)", 999, 0, "=(P4/G4)*100", "=(Q4/G4)*100"],
-    ["2A", "2026-07-25", "M. NAUFAL A.", "EVA NURUL JANNAH", "SSB", 1.0, 44100, 56, 14, 20, 11, 19, 109, 25, 166, "=SUM(H5:O5)", 651, 0, "=(P5/G5)*100", "=(Q5/G5)*100"],
-    ["3A", "2026-07-25", "PURYANI", "SONYA NOVITA D.", "Intan", 1.0, 49700, 142, 34, 44, 27, 46, 241, 59, 299, "=SUM(H6:O6)", 1978, 0, "=(P6/G6)*100", "=(Q6/G6)*100"]
-  ];
-  for (var r = 0; r < sampleRows.length; r++) {
-    sheetProduksi.appendRow(sampleRows[r]);
+  // A. BUAT TAB DATABASE_PRODUKSI (Master Rekap)
+  var sheetProd = ss.getSheetByName("DATABASE_PRODUKSI");
+  if (!sheetProd) {
+    sheetProd = ss.insertSheet("DATABASE_PRODUKSI", 0);
+  }
+  sheetProd.clear();
+  sheetProd.appendRow(headers);
+  formatHeaderRange(sheetProd, 1, 1, 1, headers.length, "#0F172A", "#38BDF8");
+  sheetProd.setFrozenRows(1);
+
+  // Formula VSTACK untuk otomatis menggabungkan seluruh tab mandor
+  var vstackParts = [];
+
+  // B. BUAT 16 TAB INPUT KHUSUS SETIAP MANDOR
+  for (var i = 0; i < daftarMandor.length; i++) {
+    var m = daftarMandor[i];
+    var tabName = m.lokal + " - " + m.mandor;
+    vstackParts.push("IFERROR(FILTER('" + tabName + "'!A2:T, '" + tabName + "'!B2:B<\"\"))");
+
+    var sheetM = ss.getSheetByName(tabName);
+    if (!sheetM) {
+      sheetM = ss.insertSheet(tabName, i + 1);
+    }
+    sheetM.clear();
+    sheetM.appendRow(headers);
+
+    // Format Header Tab Mandor dengan warna Hijau Elegan
+    formatHeaderRange(sheetM, 1, 1, 1, headers.length, "#064E3B", "#34D399");
+    sheetM.setFrozenRows(1);
+
+    // Tambahkan 1 baris contoh input
+    var sampleDate = new Date().toLocaleDateString("id-ID");
+    var sampleRow = [
+      m.lokal, sampleDate, m.mandor, "Contoh Telak", m.brand || "MW", 
+      1.0, 50000, 100, 15, 20, 10, 15, 80, 20, 120, 
+      "=SUM(H2:O2)", 800, 0, "=(P2/G2)*100", "=(Q2/G2)*100"
+    ];
+    sheetM.appendRow(sampleRow);
+    autoFitColumns(sheetM, headers.length);
   }
 
-  formatHeaderRange(sheetProduksi, 1, 1, 1, headersProd.length, "#0F172A", "#38BDF8");
-  sheetProduksi.setFrozenRows(1);
-  autoFitColumns(sheetProduksi, headersProd.length);
+  // Pasang Master Formula VSTACK di sel A2 DATABASE_PRODUKSI
+  var formulaStr = "=VSTACK(" + vstackParts.join(", ") + ")";
+  try {
+    sheetProd.getRange("A2").setFormula(formulaStr);
+  } catch(e) {
+    // Jika VSTACK formula belum didukung di versi sheet user, jalankan rekap script
+    rekapSemuaTabMandor();
+  }
+  autoFitColumns(sheetProd, headers.length);
 
-  // -------------------------------------------------------------
-  // TAB 2: MASTER_LOKAL_MANDOR (16 Data Master Lengkap)
-  // -------------------------------------------------------------
+  // C. BUAT TAB MASTER REFERENSI
   var sheetMaster = ss.getSheetByName("MASTER_LOKAL_MANDOR");
-  if (!sheetMaster) {
-    sheetMaster = ss.insertSheet("MASTER_LOKAL_MANDOR", 1);
-  }
+  if (!sheetMaster) sheetMaster = ss.insertSheet("MASTER_LOKAL_MANDOR");
   sheetMaster.clear();
+  sheetMaster.appendRow(["NAMA LOKAL", "NAMA MANDOR", "BRAND", "KETERANGAN"]);
+  daftarMandor.forEach(function(item) {
+    sheetMaster.appendRow([item.lokal, item.mandor, item.brand, "Aktif"]);
+  });
+  formatHeaderRange(sheetMaster, 1, 1, 1, 4, "#0F172A", "#34D399");
+  autoFitColumns(sheetMaster, 4);
 
-  var headersMaster = ["NAMA LOKAL", "NAMA MANDOR", "BRAND", "KETERANGAN"];
-  sheetMaster.appendRow(headersMaster);
-
-  var masterRows = [
-    ["1A", "M. NIRWANSYAH", "MW", "Aktif"],
-    ["1B", "SABILI ABIDUL H.", "KS New", "Aktif"],
-    ["1C", "LUSI M.", "Gemilang", "Aktif"],
-    ["1D", "EKA HAPPY", "Istimea", "Aktif"],
-    ["1E", "JANNAH", "Abu-abu", "Aktif"],
-    ["1F", "NOOR SULIKAN.", "Orange Fresh", "Aktif"],
-    ["2A", "M. NAUFAL A.", "SSB", "Aktif"],
-    ["2B", "M. NURDIN", "Premiere", "Aktif"],
-    ["2C", "ALI MAHMUD A.", "Sukun 2000", "Aktif"],
-    ["2D", "CHOFIFAH", "Intan", "Aktif"],
-    ["2E (PELATIHAN)", "SUWARSIH", "Biru Sapphiere", "Pelatihan"],
-    ["2F (PELATIHAN)", "MURYATI", "", "Pelatihan"],
-    ["3A", "PURYANI", "", "Aktif"],
-    ["3B", "MUSLIKIN", "", "Aktif"],
-    ["3C", "PIPIT P.", "", "Aktif"],
-    ["3D", "ZUMROH", "", "Aktif"]
-  ];
-  for (var m = 0; m < masterRows.length; m++) {
-    sheetMaster.appendRow(masterRows[m]);
-  }
-
-  formatHeaderRange(sheetMaster, 1, 1, 1, headersMaster.length, "#0F172A", "#34D399");
-  sheetMaster.setFrozenRows(1);
-  autoFitColumns(sheetMaster, headersMaster.length);
-
-  // -------------------------------------------------------------
-  // TAB 3: FORM_GILING_GUDANG_3 (Format Meja Giling Gudang 3)
-  // -------------------------------------------------------------
-  setupFormGiling();
-
-  // Hapus Sheet default kosong jika ada
+  // Hapus Sheet1 kosong jika ada
   var defaultSheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("Sheet 1");
   if (defaultSheet && ss.getSheets().length > 1) {
-    try { ss.deleteSheet(defaultSheet); } catch(e) {}
+    try { ss.deleteSheet(defaultSheet); } catch(err) {}
   }
 
-  ss.setActiveSheet(sheetProduksi);
-  SpreadsheetApp.getUi().alert("✅ BERHASIL!\n\nSeluruh kolom, formula, 16 Master Mandor, dan Form Kartu Giling Gudang 3 telah 100% lengkap dibuat!");
+  ss.setActiveSheet(sheetProd);
+  SpreadsheetApp.getUi().alert("✅ BERHASIL SELESAI!\n\n16 Tab Mandor terpisah telah selesai dibuat!\nSetiap mandor kini punya tab sendiri.\nData dari seluruh tab otomatis ter-link masuk ke tab DATABASE_PRODUKSI secara realtime.");
 }
 
-// 3. FUNGSI KHUSUS: MEMBUAT FORM KARTU GILING GUDANG 3 TANPA ERROR
-function setupFormGiling() {
+// 3. FUNGSI REKAP SCRIPT (CADANGAN SINKRONISASI SEMUA TAB MANDOR)
+function rekapSemuaTabMandor() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetGiling = ss.getSheetByName("FORM_GILING_GUDANG_3");
-  if (!sheetGiling) {
-    sheetGiling = ss.insertSheet("FORM_GILING_GUDANG_3", 2);
-  }
-  sheetGiling.clear();
+  var sheetProd = ss.getSheetByName("DATABASE_PRODUKSI");
+  if (!sheetProd) return;
 
-  var gilingGrid = [
-    ["FORM KERUSAKAN ROKOK BATANGAN GUDANG 3", "", "", "", "", "", "", "", "", "", "", "", ""],
-    ["", "", "", "", "", "", "", "", "", "", "", "", ""],
-    ["Tanggal", "", "", "Lokal", "", ":", "1A", "", "", "Quality Control", "", "Pelaksana Telak", ""],
-    ["Brand", "", "", "Petugas Mandor", "", ":", "M. NIRWANSYAH", "", "", "", "", "", ""],
-    ["Jumlah Produksi", "", "", "Giling", "", ":", "50000", "", "", "( Muhamad Syafa Hanif )", "", "( Fidzalika Adzani )", ""],
-    ["", "", "", "", "", "", "", "", "", "", "", "", ""],
-    ["GILING", "", "", "", "", "", "", "", "", "", "", "", ""],
-    ["NO URUT", "NO KARTU", "N A M A", "CW", "PK", "LK", "TK", "MT", "MD", "AT", "MM", "TOTAL KERUSAKAN", "KETERANGAN"],
-    [1, 5626, "Sri Suliyatun", 12, 1, 0, 0, 2, 4, 0, 8, "=SUM(D9:K9)", "OK"],
-    [2, 5708, "Fitriana", 8, 0, 1, 0, 1, 3, 0, 6, "=SUM(D10:K10)", "OK"],
-    [3, 5718, "Istifah", 10, 2, 1, 0, 0, 5, 1, 9, "=SUM(D11:K11)", "OK"],
-    [4, 5730, "Sri Nurul Huda", 7, 0, 0, 0, 1, 2, 0, 5, "=SUM(D12:K12)", "OK"],
-    [5, 6083, "Suyati", 15, 3, 2, 1, 2, 6, 0, 11, "=SUM(D13:K13)", "Perlu Pembinaan"],
-    [6, 5638, "Siti Nor Jannah", 9, 1, 1, 0, 1, 4, 0, 7, "=SUM(D14:K14)", "OK"],
-    [7, 6506, "Rini Astutuik", 11, 1, 0, 0, 0, 3, 0, 8, "=SUM(D15:K15)", "OK"],
-    [8, 6501, "Intan Leni", 8, 0, 0, 0, 1, 2, 0, 6, "=SUM(D16:K16)", "OK"],
-    [9, 6591, "Efit Mudi A.", 14, 2, 1, 1, 2, 5, 1, 10, "=SUM(D17:K17)", "OK"],
-    [10, 6423, "Tyas Yulianis", 6, 0, 0, 0, 0, 2, 0, 4, "=SUM(D18:K18)", "Benchmark"],
-    [11, 6364, "Nor Hayati", 10, 1, 1, 0, 1, 4, 0, 7, "=SUM(D19:K19)", "OK"],
-    [12, 5636, "Nailis Sa'adah", 8, 0, 1, 0, 0, 3, 0, 6, "=SUM(D20:K20)", "OK"],
-    [13, 6372, "Sri Ngatini", 12, 2, 1, 0, 1, 5, 0, 9, "=SUM(D21:K21)", "OK"],
-    [14, 6412, "Tohiroh Mahrofi", 9, 1, 0, 0, 1, 3, 0, 7, "=SUM(D22:K22)", "OK"],
-    [15, 6418, "Sugiarti", 13, 2, 1, 0, 2, 4, 1, 9, "=SUM(D23:K23)", "OK"],
-    [16, 6571, "Kustini", 7, 0, 0, 0, 0, 2, 0, 5, "=SUM(D24:K24)", "Benchmark"],
-    [17, 5842, "Khomsatun", 10, 1, 1, 0, 1, 4, 0, 8, "=SUM(D25:K25)", "OK"],
-    [18, 5327, "Zurikah", 11, 2, 0, 0, 1, 3, 0, 8, "=SUM(D26:K26)", "OK"],
-    ["", "", "TOTAL KERUSAKAN MEJA", "=SUM(D9:D26)", "=SUM(E9:E26)", "=SUM(F9:F26)", "=SUM(G9:G26)", "=SUM(H9:H26)", "=SUM(I9:I26)", "=SUM(J9:J26)", "=SUM(K9:K26)", "=SUM(L9:L26)", ""]
+  var headers = [
+    "LOKAL", "TANGGAL", "NAMA MANDOR", "NAMA TELAK", "BRAND", 
+    "ABSENSI GILING", "GARAPAN", "COWONG", "PAPIR KUSUT", "LEM KURANG", 
+    "TALIPAN KOTOR", "MUNTIR", "MEDOT", "ATOS", "MEKAR-MINGKUP", 
+    "KERUSAKAN TELAK", "KERUSAKAN MANDOR", "KEKURANGAN PAPIR", "% RASIO TELAK", "% RASIO MANDOR"
   ];
 
-  sheetGiling.getRange(1, 1, gilingGrid.length, 13).setValues(gilingGrid);
+  var allRows = [];
+  var sheets = ss.getSheets();
 
-  // Format Tampilan
-  sheetGiling.getRange("A1").setFontSize(14).setFontWeight("bold").setFontColor("#0F172A");
-  formatHeaderRange(sheetGiling, 8, 1, 1, 13, "#0F172A", "#FBBF24");
-  sheetGiling.getRange(27, 1, 1, 13).setFontWeight("bold").setBackground("#F1F5F9");
-  autoFitColumns(sheetGiling, 13);
+  for (var s = 0; s < sheets.length; s++) {
+    var sh = sheets[s];
+    var sName = sh.getName();
+    // Cari tab mandor (yang ada strip "-" seperti "1A - M. NIRWANSYAH")
+    if (sName.indexOf(" - ") !== -1) {
+      var data = sh.getDataRange().getValues();
+      for (var r = 1; r < data.length; r++) {
+        var row = data[r];
+        if (row[0] && row[1]) { // Ada lokal & tanggal
+          allRows.push(row);
+        }
+      }
+    }
+  }
+
+  if (allRows.length > 0) {
+    sheetProd.clear();
+    sheetProd.appendRow(headers);
+    sheetProd.getRange(2, 1, allRows.length, headers.length).setValues(allRows);
+    formatHeaderRange(sheetProd, 1, 1, 1, headers.length, "#0F172A", "#38BDF8");
+    sheetProd.setFrozenRows(1);
+  }
 }
 
-// 4. API ENDPOINTS: DUA ARAH (GET & POST) UNTUK DASHBOARD WEB
+// 4. API DUA ARAH (GET & POST) UNTUK DASHBOARD WEB
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var result = {
       status: "success",
       timestamp: new Date().toISOString(),
-      data: {
-        workers: [],
-        master: []
-      }
+      data: { workers: [], master: [] }
     };
 
     var prodSheet = ss.getSheetByName("DATABASE_PRODUKSI");
-    if (prodSheet) {
-      result.data.workers = getSheetDataAsJson(prodSheet);
-    }
+    if (prodSheet) result.data.workers = getSheetDataAsJson(prodSheet);
 
     var masterSheet = ss.getSheetByName("MASTER_LOKAL_MANDOR");
-    if (masterSheet) {
-      result.data.master = getSheetDataAsJson(masterSheet);
-    }
+    if (masterSheet) result.data.master = getSheetDataAsJson(masterSheet);
 
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -238,16 +297,9 @@ function doPost(e) {
       prodSheet.setFrozenRows(1);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "success",
-      message: "Data berhasil disimpan permanen di Google Spreadsheet!"
-    })).setMimeType(ContentService.MimeType.JSON);
-
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Data tersimpan!" })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: "error",
-      message: err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -255,10 +307,8 @@ function doPost(e) {
 function getSheetDataAsJson(sheet) {
   var values = sheet.getDataRange().getValues();
   if (!values || values.length <= 1) return [];
-
   var headers = values[0];
   var result = [];
-
   for (var i = 1; i < values.length; i++) {
     var row = values[i];
     var obj = {};
@@ -274,29 +324,20 @@ function getSheetDataAsJson(sheet) {
 function formatHeaderRange(sheet, startRow, startCol, numRows, numCols, bgColor, fontColor) {
   try {
     sheet.getRange(startRow, startCol, numRows, numCols)
-      .setBackground(bgColor)
-      .setFontColor(fontColor)
-      .setFontWeight("bold")
-      .setFontFamily("Arial");
+      .setBackground(bgColor).setFontColor(fontColor).setFontWeight("bold").setFontFamily("Arial");
   } catch(e) {}
 }
 
 function autoFitColumns(sheet, numCols) {
-  try {
-    sheet.autoResizeColumns(1, numCols);
-  } catch(e) {}
+  try { sheet.autoResizeColumns(1, numCols); } catch(e) {}
 }
 
 function tampilkanPetunjukDeploy() {
   var html = HtmlService.createHtmlOutput(
     '<p><b>Cara Mendapatkan Link Web App:</b></p>' +
-    '<ol>' +
-    '<li>Klik tombol biru <b>Deploy (Terapkan)</b> di pojok kanan atas.</li>' +
-    '<li>Pilih <b>New deployment</b>.</li>' +
-    '<li>Pilih jenis <b>Web app</b>.</li>' +
-    '<li>Atur <i>Who has access</i>: <b>Anyone (Siapa saja)</b>.</li>' +
-    '<li>Klik <b>Deploy</b> dan salin URL Web App ke dashboard web.</li>' +
-    '</ol>'
-  ).setWidth(400).setHeight(250);
+    '<ol><li>Klik tombol biru <b>Deploy</b> > <b>New deployment</b>.</li>' +
+    '<li>Pilih <b>Web app</b>, akses: <b>Anyone</b>.</li>' +
+    '<li>Klik <b>Deploy</b> dan salin URL ke dashboard.</li></ol>'
+  ).setWidth(400).setHeight(220);
   SpreadsheetApp.getUi().showModalDialog(html, 'Petunjuk Deploy Web App');
 }
