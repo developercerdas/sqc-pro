@@ -11,13 +11,17 @@
 
 // 1. MENU TOOLBAR DI GOOGLE SPREADSHEET
 function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('🏭 MENU SUKUN QC')
-    .addItem('🚀 1-Klik Buat 16 Tab Input Mandor + Database Rekap Otomatis', 'setupSistemMultiTabMandor')
-    .addItem('🔄 Sinkronkan / Rekap Ulang Semua Tab Mandor', 'rekapSemuaTabMandor')
-    .addSeparator()
-    .addItem('ℹ️ Petunjuk Deploy Web App', 'tampilkanPetunjukDeploy')
-    .addToUi();
+  try {
+    var ui = SpreadsheetApp.getUi();
+    ui.createMenu('🏭 MENU SUKUN QC')
+      .addItem('🚀 1-Klik Buat 16 Tab Input Mandor + Database Rekap Otomatis', 'setupSistemMultiTabMandor')
+      .addItem('🔄 Sinkronkan / Rekap Ulang Semua Tab Mandor', 'rekapSemuaTabMandor')
+      .addSeparator()
+      .addItem('ℹ️ Petunjuk Deploy Web App', 'tampilkanPetunjukDeploy')
+      .addToUi();
+  } catch(e) {
+    Logger.log("Info onOpen: " + e.message);
+  }
 }
 
 // 2. FUNGSI UTAMA: MEMBUAT 16 TAB MANDOR + TAB DATABASE OTOMATIS
@@ -183,7 +187,11 @@ function setupSistemMultiTabMandor() {
   }
 
   ss.setActiveSheet(sheetProd);
-  SpreadsheetApp.getUi().alert("✅ BERHASIL SELESAI!\n\n16 Tab Mandor terpisah telah selesai dibuat!\nSetiap mandor kini punya tab sendiri.\nData dari seluruh tab otomatis ter-link masuk ke tab DATABASE_PRODUKSI secara realtime.");
+  try {
+    SpreadsheetApp.getUi().alert("✅ BERHASIL SELESAI!\n\n16 Tab Mandor terpisah telah selesai dibuat!\nSetiap mandor kini punya tab sendiri.\nData dari seluruh tab otomatis ter-link masuk ke tab DATABASE_PRODUKSI secara realtime.");
+  } catch (e) {
+    Logger.log("✅ BERHASIL: 16 Tab Mandor terpisah & DATABASE_PRODUKSI telah selesai dibuat!");
+  }
 }
 
 // 3. FUNGSI REKAP SCRIPT (CADANGAN SINKRONISASI SEMUA TAB MANDOR)
@@ -333,11 +341,15 @@ function autoFitColumns(sheet, numCols) {
 }
 
 function tampilkanPetunjukDeploy() {
-  var html = HtmlService.createHtmlOutput(
-    '<p><b>Cara Mendapatkan Link Web App:</b></p>' +
-    '<ol><li>Klik tombol biru <b>Deploy</b> > <b>New deployment</b>.</li>' +
-    '<li>Pilih <b>Web app</b>, akses: <b>Anyone</b>.</li>' +
-    '<li>Klik <b>Deploy</b> dan salin URL ke dashboard.</li></ol>'
-  ).setWidth(400).setHeight(220);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Petunjuk Deploy Web App');
+  try {
+    var html = HtmlService.createHtmlOutput(
+      '<p><b>Cara Mendapatkan Link Web App:</b></p>' +
+      '<ol><li>Klik tombol biru <b>Deploy</b> > <b>New deployment</b>.</li>' +
+      '<li>Pilih <b>Web app</b>, akses: <b>Anyone</b>.</li>' +
+      '<li>Klik <b>Deploy</b> dan salin URL ke dashboard.</li></ol>'
+    ).setWidth(400).setHeight(220);
+    SpreadsheetApp.getUi().showModalDialog(html, 'Petunjuk Deploy Web App');
+  } catch(e) {
+    Logger.log("Petunjuk: Deploy > New deployment > Web app > Anyone");
+  }
 }
