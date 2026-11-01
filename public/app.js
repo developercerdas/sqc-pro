@@ -95,7 +95,25 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (appConfig?.googleSheets?.webAppUrl) {
     fetchFromGoogleSheet(true);
   }
+  setupAutoRefreshInterval();
 });
+
+// Auto-Refresh Background Timer (Tarik data terbaru otomatis tiap 30 detik)
+let autoRefreshTimer = null;
+function setupAutoRefreshInterval() {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
+
+  // Aktifkan polling tiap 30 detik
+  autoRefreshTimer = setInterval(() => {
+    // Hanya refresh otomatis jika halaman sedang aktif di layar & URL ada
+    if (!document.hidden && appConfig?.googleSheets?.webAppUrl) {
+      fetchFromGoogleSheet(true); // Silent mode: update background tanpa popup
+    }
+  }, 30000);
+}
 
 // Setup Full-window Drag and Drop
 function setupDragAndDrop() {
@@ -930,8 +948,9 @@ function saveGoogleSheetSettings() {
 
   saveAllDataLocally();
   updateSyncBadge();
+  setupAutoRefreshInterval();
   closeGoogleSheetModal();
-  showToast("Pengaturan Disimpan! Menguji koneksi...");
+  showToast("Pengaturan Disimpan! Auto-Refresh Aktif Tiap 30 Detik...");
   
   fetchFromGoogleSheet(false);
 }
