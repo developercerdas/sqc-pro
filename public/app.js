@@ -1046,34 +1046,75 @@ async function fetchFromGoogleSheet(isSilent = false) {
     ]);
 
     if (prodTable && prodTable.rows && prodTable.rows.length > 0) {
+      // Dynamic Column Mapping: Mendukung LOKAL di kolom pertama atau kolom manapun
+      const colMap = {};
+      if (prodTable.cols && prodTable.cols.length > 0) {
+        prodTable.cols.forEach((col, idx) => {
+          const norm = (col.label || '').toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+          if (norm.includes('LOKAL')) colMap.lokal = idx;
+          else if (norm.includes('MANDOR') && !norm.includes('CACAT') && !norm.includes('KERUSAKAN') && !norm.includes('RASIO')) colMap.mandor = idx;
+          else if (norm.includes('TELAK') && !norm.includes('CACAT') && !norm.includes('KERUSAKAN') && !norm.includes('RASIO')) colMap.telakName = idx;
+          else if (norm.includes('PEKERJA') || norm.includes('NAMA')) {
+            if (colMap.telakName === undefined) colMap.telakName = idx;
+          }
+          else if (norm.includes('TANGGAL')) colMap.tanggal = idx;
+          else if (norm.includes('BRAND')) colMap.brand = idx;
+          else if (norm.includes('GARAPAN')) colMap.garapan = idx;
+          else if (norm.includes('COWONG')) colMap.cowong = idx;
+          else if (norm.includes('PAPIRKUSUT')) colMap.papir_kusut = idx;
+          else if (norm.includes('LEMKURANG')) colMap.lem_kurang = idx;
+          else if (norm.includes('TALIPANKOTOR')) colMap.talipan_kotor = idx;
+          else if (norm.includes('MUNTIR')) colMap.muntir = idx;
+          else if (norm.includes('MEDOT')) colMap.medot = idx;
+          else if (norm.includes('ATOS')) colMap.atos = idx;
+          else if (norm.includes('MEKARMINGKUP')) colMap.mekar_mingkup = idx;
+          else if (norm.includes('KERUSAKANTELAK') || norm.includes('CACATTELAK')) colMap.telak = idx;
+          else if (norm.includes('KERUSAKANMANDOR') || norm.includes('CACATMANDOR')) colMap.mandorDefect = idx;
+          else if (norm.includes('RASIOTELAK')) colMap.pctTelak = idx;
+          else if (norm.includes('RASIOMANDOR')) colMap.pctMandor = idx;
+        });
+      }
+
       workerDataset = prodTable.rows.map((r, i) => {
         const c = r.c || [];
-        const garapan = Number(c[6]?.v) || 0;
-        const telak = Number(c[15]?.v) || 0;
-        const mandorDefect = Number(c[16]?.v) || 0;
+        const lokalIdx = colMap.lokal !== undefined ? colMap.lokal : 3;
+        const mandorIdx = colMap.mandor !== undefined ? colMap.mandor : 2;
+        const nameIdx = colMap.telakName !== undefined ? colMap.telakName : 1;
+        const tglIdx = colMap.tanggal !== undefined ? colMap.tanggal : 0;
+        const brandIdx = colMap.brand !== undefined ? colMap.brand : 4;
+        const garapanIdx = colMap.garapan !== undefined ? colMap.garapan : 6;
+        const telakIdx = colMap.telak !== undefined ? colMap.telak : 15;
+        const mDefectIdx = colMap.mandorDefect !== undefined ? colMap.mandorDefect : 16;
+        const pctTIdx = colMap.pctTelak !== undefined ? colMap.pctTelak : 18;
+        const pctMIdx = colMap.pctMandor !== undefined ? colMap.pctMandor : 19;
+
+        const garapan = Number(c[garapanIdx]?.v) || 0;
+        const telak = Number(c[telakIdx]?.v) || 0;
+        const mandorDefect = Number(c[mDefectIdx]?.v) || 0;
+
         return {
-          tanggal: c[0]?.f || c[0]?.v || '',
-          name: c[1]?.v || ('Pekerja ' + (i + 1)),
-          mandor: c[2]?.v || '',
-          lokal: c[3]?.v || '',
-          brand: c[4]?.v || '',
+          lokal: (c[lokalIdx]?.v || '').toString().trim(),
+          mandor: (c[mandorIdx]?.v || '').toString().trim(),
+          name: (c[nameIdx]?.v || ('Pekerja ' + (i + 1))).toString().trim(),
+          tanggal: c[tglIdx]?.f || c[tglIdx]?.v || '',
+          brand: (c[brandIdx]?.v || '').toString().trim(),
           garapan: garapan,
           telak: telak,
           mandorDefect: mandorDefect,
-          pctTelak: Number(c[18]?.v) || (garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0),
-          pctMandor: Number(c[19]?.v) || (garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0),
+          pctTelak: Number(c[pctTIdx]?.v) || (garapan > 0 ? parseFloat(((telak / garapan) * 100).toFixed(2)) : 0),
+          pctMandor: Number(c[pctMIdx]?.v) || (garapan > 0 ? parseFloat(((mandorDefect / garapan) * 100).toFixed(2)) : 0),
           defects: {
-            cowong: Number(c[7]?.v) || 0,
-            papir_kusut: Number(c[8]?.v) || 0,
-            lem_kurang: Number(c[9]?.v) || 0,
-            talipan_kotor: Number(c[10]?.v) || 0,
-            muntir: Number(c[11]?.v) || 0,
-            medot: Number(c[12]?.v) || 0,
-            atos: Number(c[13]?.v) || 0,
-            mekar_mingkup: Number(c[14]?.v) || 0
+            cowong: Number(c[colMap.cowong !== undefined ? colMap.cowong : 7]?.v) || 0,
+            papir_kusut: Number(c[colMap.papir_kusut !== undefined ? colMap.papir_kusut : 8]?.v) || 0,
+            lem_kurang: Number(c[colMap.lem_kurang !== undefined ? colMap.lem_kurang : 9]?.v) || 0,
+            talipan_kotor: Number(c[colMap.talipan_kotor !== undefined ? colMap.talipan_kotor : 10]?.v) || 0,
+            muntir: Number(c[colMap.muntir !== undefined ? colMap.muntir : 11]?.v) || 0,
+            medot: Number(c[colMap.medot !== undefined ? colMap.medot : 12]?.v) || 0,
+            atos: Number(c[colMap.atos !== undefined ? colMap.atos : 13]?.v) || 0,
+            mekar_mingkup: Number(c[colMap.mekar_mingkup !== undefined ? colMap.mekar_mingkup : 14]?.v) || 0
           }
         };
-      }).filter(w => w.name && w.garapan > 0);
+      }).filter(w => (w.lokal || w.name) && w.garapan > 0);
 
       activeDataset = [...workerDataset];
     }
@@ -1629,7 +1670,14 @@ function renderMasterTable() {
 
   const highLimit = appConfig.thresholds?.highRiskLimit || 2.0;
 
-  activeDataset.forEach(row => {
+  // Urutkan data berdasarkan LOKAL secara natural (1A, 1B, 1C, ..., 2A, ..., 3D)
+  const sorted = [...activeDataset].sort((a, b) => {
+    const lA = (a.lokal || '').toString();
+    const lB = (b.lokal || '').toString();
+    return lA.localeCompare(lB, undefined, { numeric: true, sensitivity: 'base' });
+  });
+
+  sorted.forEach(row => {
     const mandorVal = row.mandorDefect !== undefined ? row.mandorDefect : (row.mandor || 0);
     const gap = mandorVal - row.telak;
     const isHighRisk = row.pctTelak > highLimit || row.pctMandor > highLimit;
@@ -1638,31 +1686,32 @@ function renderMasterTable() {
     tr.className = `hover:bg-white/[0.03] transition-colors ${isHighRisk ? 'bg-red-500/[0.04]' : ''}`;
 
     tr.innerHTML = `
-      <td class="py-3 px-3 font-semibold text-white flex items-center gap-2">
-        <span class="w-1.5 h-1.5 rounded-full ${isHighRisk ? 'bg-red-400' : 'bg-emerald-400'}"></span>
-        ${row.name}
+      <td class="py-3 px-3 text-center">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/25 font-bold font-mono text-xs text-blue-400">
+          <span class="w-1.5 h-1.5 rounded-full ${isHighRisk ? 'bg-red-400 animate-pulse' : 'bg-emerald-400'}"></span>
+          ${row.lokal || '-'}
+        </span>
       </td>
-      <td class="py-3 px-2 text-center">
-        <span class="px-2 py-0.5 rounded bg-white/[0.04] font-mono text-[11px] text-slate-300">${row.lokal || '-'}</span>
-      </td>
-      <td class="py-3 px-3 text-slate-300">${row.mandor || '-'}</td>
+      <td class="py-3 px-3 font-semibold text-white">${row.mandor || '-'}</td>
+      <td class="py-3 px-3 text-slate-300">${row.name || '-'}</td>
       <td class="py-3 px-3 font-medium text-slate-400">${row.brand || '-'}</td>
-      <td class="py-3 px-3 text-right num-font font-medium text-slate-200">${row.garapan.toLocaleString('id-ID')}</td>
-      <td class="py-3 px-3 text-right num-font text-blue-400 font-semibold">${row.telak.toLocaleString('id-ID')}</td>
+      <td class="py-3 px-3 text-right num-font font-medium text-slate-200">${(row.garapan || 0).toLocaleString('id-ID')}</td>
+      <td class="py-3 px-3 text-right num-font text-blue-400 font-semibold">${(row.telak || 0).toLocaleString('id-ID')}</td>
       <td class="py-3 px-3 text-right num-font text-purple-400 font-semibold">${Math.round(mandorVal).toLocaleString('id-ID')}</td>
-      <td class="py-3 px-3 text-right num-font text-amber-400 font-medium">${gap >= 0 ? '+' : ''}${Math.round(gap).toLocaleString('id-ID')}</td>
-      <td class="py-3 px-3 text-right num-font font-bold ${row.pctTelak > highLimit ? 'text-red-400' : 'text-emerald-400'}">${row.pctTelak.toFixed(2)}%</td>
-      <td class="py-3 px-3 text-right num-font font-bold ${row.pctMandor > highLimit ? 'text-red-400' : 'text-blue-400'}">${row.pctMandor.toFixed(2)}%</td>
+      <td class="py-3 px-3 text-right num-font ${gap > 0 ? 'text-amber-400' : 'text-slate-400'}">${gap > 0 ? '+' : ''}${Math.round(gap).toLocaleString('id-ID')}</td>
+      <td class="py-3 px-3 text-right num-font font-bold ${row.pctTelak > highLimit ? 'text-red-400' : (row.pctTelak <= 1.0 ? 'text-emerald-400' : 'text-amber-400')}">${(row.pctTelak || 0).toFixed(2)}%</td>
+      <td class="py-3 px-3 text-right num-font font-bold ${row.pctMandor > highLimit ? 'text-red-400' : (row.pctMandor <= 1.0 ? 'text-emerald-400' : 'text-amber-400')}">${(row.pctMandor || 0).toFixed(2)}%</td>
       <td class="py-3 px-2 text-center">
-        ${isHighRisk
-          ? '<span class="px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 font-semibold">High Risk</span>'
-          : '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">Normal</span>'}
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isHighRisk ? 'bg-red-500/20 text-red-400 border border-red-500/30' : (row.pctTelak <= 1.0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30')}">
+          ${isHighRisk ? 'High Risk' : (row.pctTelak <= 1.0 ? 'Optimal' : 'Waspada')}
+        </span>
       </td>
     `;
     tbody.appendChild(tr);
   });
 
-  document.getElementById('rekapTableInfo').innerText = `Menampilkan ${activeDataset.length} dari ${workerDataset.length} Operator`;
+  const infoEl = document.getElementById('rekapTableInfo');
+  if (infoEl) infoEl.innerText = `Menampilkan ${activeDataset.length} dari ${workerDataset.length} Lokal Terdata`;
 }
 
 function renderHeatmapTable() {
@@ -1784,7 +1833,7 @@ function initCharts() {
   workerBarChartObj = new Chart(ctxWorker, {
     type: 'bar',
     data: {
-      labels: activeDataset.map(w => w.name.split(' ')[0] + ' (' + (w.lokal || '') + ')'),
+      labels: [...activeDataset].sort((a,b) => (a.lokal||'').localeCompare(b.lokal||'', undefined, {numeric: true})).map(w => 'Lokal ' + (w.lokal || '-') + ' (' + (w.mandor || w.name || '').split(' ')[0] + ')'),
       datasets: [
         {
           label: 'Telak',
@@ -1963,9 +2012,10 @@ function updateDefectLineChart() {
 
 function updateChartsWithNewData() {
   if (workerBarChartObj) {
-    workerBarChartObj.data.labels = activeDataset.map(w => w.name.split(' ')[0] + ' (' + (w.lokal || '') + ')');
-    workerBarChartObj.data.datasets[0].data = activeDataset.map(w => w.telak);
-    workerBarChartObj.data.datasets[1].data = activeDataset.map(w => w.mandorDefect || w.mandor || 0);
+    const sortedForChart = [...activeDataset].sort((a,b) => (a.lokal||'').localeCompare(b.lokal||'', undefined, {numeric: true}));
+    workerBarChartObj.data.labels = sortedForChart.map(w => 'Lokal ' + (w.lokal || '-') + ' (' + (w.mandor || w.name || '').split(' ')[0] + ')');
+    workerBarChartObj.data.datasets[0].data = sortedForChart.map(w => w.telak);
+    workerBarChartObj.data.datasets[1].data = sortedForChart.map(w => w.mandorDefect || w.mandor || 0);
     workerBarChartObj.update();
   }
 

@@ -31,7 +31,7 @@ function setupSpreadsheetLengkap() {
   sheetProduksi.clear();
 
   var headersProd = [
-    "TANGGAL", "NAMA TELAK", "NAMA MANDOR", "LOKAL", "BRAND", 
+    "LOKAL", "TANGGAL", "NAMA MANDOR", "NAMA TELAK", "BRAND", 
     "ABSENSI GILING", "GARAPAN", "COWONG", "PAPIR KUSUT", "LEM KURANG", 
     "TALIPAN KOTOR", "MUNTIR", "MEDOT", "ATOS", "MEKAR-MINGKUP", 
     "KERUSAKAN TELAK", "KERUSAKAN MANDOR", "KEKURANGAN PAPIR", "% RASIO TELAK", "% RASIO MANDOR"
@@ -40,11 +40,11 @@ function setupSpreadsheetLengkap() {
 
   // Sample data sesuai file asli PT Sukun
   var sampleRows = [
-    ["2026-07-24", "FIDZALIKA ADZANI", "MUSLIKIN", "3B", "MW", 0.9, 28300, 126, 2, 2, 0, 0, 7, 0, 91, "=SUM(H2:O2)", 2472, 0, "=(P2/G2)*100", "=(Q2/G2)*100"],
-    ["2026-07-24", "FIDZALIKA ADZANI", "MUSLIKIN", "3B", "MW", 1.0, 54160, 235, 0, 8, 7, 2, 39, 0, 117, "=SUM(H3:O3)", 3592, 0, "=(P3/G3)*100", "=(Q3/G3)*100"],
-    ["2026-07-25", "SITI SOLIHATI", "SABILI ABIDUL H.", "1B", "KS New", 1.0, 45000, 110, 24, 35, 19, 34, 162, 46, 217, "=SUM(H4:O4)", 999, 0, "=(P4/G4)*100", "=(Q4/G4)*100"],
-    ["2026-07-25", "EVA NURUL JANNAH", "M. NAUFAL A.", "2A", "SSB", 1.0, 44100, 56, 14, 20, 11, 19, 109, 25, 166, "=SUM(H5:O5)", 651, 0, "=(P5/G5)*100", "=(Q5/G5)*100"],
-    ["2026-07-25", "SONYA NOVITA D.", "PURYANI", "3A", "Intan", 1.0, 49700, 142, 34, 44, 27, 46, 241, 59, 299, "=SUM(H6:O6)", 1978, 0, "=(P6/G6)*100", "=(Q6/G6)*100"]
+    ["3B", "2026-07-24", "MUSLIKIN", "FIDZALIKA ADZANI", "MW", 0.9, 28300, 126, 2, 2, 0, 0, 7, 0, 91, "=SUM(H2:O2)", 2472, 0, "=(P2/G2)*100", "=(Q2/G2)*100"],
+    ["3B", "2026-07-24", "MUSLIKIN", "FIDZALIKA ADZANI", "MW", 1.0, 54160, 235, 0, 8, 7, 2, 39, 0, 117, "=SUM(H3:O3)", 3592, 0, "=(P3/G3)*100", "=(Q3/G3)*100"],
+    ["1B", "2026-07-25", "SABILI ABIDUL H.", "SITI SOLIHATI", "KS New", 1.0, 45000, 110, 24, 35, 19, 34, 162, 46, 217, "=SUM(H4:O4)", 999, 0, "=(P4/G4)*100", "=(Q4/G4)*100"],
+    ["2A", "2026-07-25", "M. NAUFAL A.", "EVA NURUL JANNAH", "SSB", 1.0, 44100, 56, 14, 20, 11, 19, 109, 25, 166, "=SUM(H5:O5)", 651, 0, "=(P5/G5)*100", "=(Q5/G5)*100"],
+    ["3A", "2026-07-25", "PURYANI", "SONYA NOVITA D.", "Intan", 1.0, 49700, 142, 34, 44, 27, 46, 241, 59, 299, "=SUM(H6:O6)", 1978, 0, "=(P6/G6)*100", "=(Q6/G6)*100"]
   ];
   for (var r = 0; r < sampleRows.length; r++) {
     sheetProduksi.appendRow(sampleRows[r]);
@@ -200,7 +200,7 @@ function doPost(e) {
       prodSheet.clear();
 
       var headers = [
-        "TANGGAL", "NAMA TELAK", "NAMA MANDOR", "LOKAL", "BRAND", 
+        "LOKAL", "TANGGAL", "NAMA MANDOR", "NAMA TELAK", "BRAND", 
         "ABSENSI GILING", "GARAPAN", "COWONG", "PAPIR KUSUT", "LEM KURANG", 
         "TALIPAN KOTOR", "MUNTIR", "MEDOT", "ATOS", "MEKAR-MINGKUP", 
         "KERUSAKAN TELAK", "KERUSAKAN MANDOR", "KEKURANGAN PAPIR"
@@ -210,10 +210,10 @@ function doPost(e) {
       var rows = postData.workers.map(function(w) {
         var d = w.defects || {};
         return [
-          new Date().toLocaleDateString("id-ID"),
-          w.name || "",
-          w.mandor || "",
           w.lokal || "",
+          new Date().toLocaleDateString("id-ID"),
+          w.mandor || "",
+          w.name || "",
           w.brand || "",
           1.0,
           w.garapan || 0,

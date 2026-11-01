@@ -143,18 +143,25 @@
                 </button>
             </div>
 
-            <!-- MULTI-FILTER COMPONENT -->
+            <!-- MULTI-FILTER COMPONENT (MAIN ANCHOR: LOKAL) -->
             <div class="flex items-center flex-wrap gap-2 text-xs">
                 <div class="relative">
-                    <select id="workerFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
-                        <option value="all">Semua Pekerja</option>
+                    <select id="lokalFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer font-semibold text-blue-400 border-blue-500/30">
+                        <option value="all">📍 Semua Lokal (Meja Giling)</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-blue-400 text-[10px] pointer-events-none"></i>
+                </div>
+
+                <div class="relative">
+                    <select id="mandorFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
+                        <option value="all">Semua Mandor</option>
                     </select>
                     <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none"></i>
                 </div>
 
                 <div class="relative">
-                    <select id="lokalFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
-                        <option value="all">Semua Lokal</option>
+                    <select id="workerFilter" onchange="applyGlobalFilters()" class="input-executive py-1.5 pl-3 pr-8 appearance-none cursor-pointer">
+                        <option value="all">Semua Telak</option>
                     </select>
                     <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none"></i>
                 </div>
@@ -167,7 +174,7 @@
                 </div>
 
                 <div class="relative">
-                    <input type="text" id="globalSearchInput" onkeyup="applyGlobalFilters()" placeholder="Cari nama, brand..." class="input-executive py-1.5 pl-7 pr-3 w-40 sm:w-48">
+                    <input type="text" id="globalSearchInput" onkeyup="applyGlobalFilters()" placeholder="Cari lokal, mandor, brand..." class="input-executive py-1.5 pl-7 pr-3 w-40 sm:w-48">
                     <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
                 </div>
 
@@ -332,14 +339,14 @@
                 </div>
             </div>
 
-            <!-- Chart 2: Worker Bar Comparison -->
+            <!-- Chart 2: Lokal Bar Comparison -->
             <div id="widget-chart-worker" class="card-executive p-5 flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
                     <div>
-                        <h3 class="text-sm font-semibold text-white">Distribusi Kerusakan per Operator</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Total Kerusakan Telak & Mandor per Pekerja</p>
+                        <h3 class="text-sm font-semibold text-white">Perbandingan Cacat Mutu per LOKAL (Meja Giling)</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Total Kerusakan Telak & Mandor per Meja Kerja Lokal</p>
                     </div>
-                    <span class="text-[11px] text-slate-400 font-mono px-2 py-0.5 rounded bg-white/[0.04]" id="workerCountBadge">0 Operator</span>
+                    <span class="text-[11px] text-blue-400 font-mono px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20" id="workerCountBadge">0 Lokal</span>
                 </div>
                 <div class="h-64 w-full relative">
                     <canvas id="workerBarChart"></canvas>
@@ -417,8 +424,8 @@
         <section id="tableSection" class="card-executive p-5 space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.06] pb-3">
                 <div>
-                    <h3 class="text-sm font-semibold text-white">Master Rekapitulasi Kinerja & Mutu Operator</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Data Komprehensif Operator Telak vs Pengawasan Mandor</p>
+                    <h3 class="text-sm font-semibold text-white">Master Rekapitulasi Mutu Berdasarkan LOKAL</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Primary Anchor: Meja Giling Lokal 1A s/d 3D dengan Penugasan Rotasi Mandor & Telak</p>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-xs text-slate-400">Status Evaluasi:</span>
@@ -434,9 +441,9 @@
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
                         <tr class="border-b border-white/[0.08] text-slate-400 uppercase font-semibold text-[11px]">
-                            <th class="py-3 px-3">Nama Pekerja</th>
-                            <th class="py-3 px-2 text-center">Lokal</th>
-                            <th class="py-3 px-3">Mandor</th>
+                            <th class="py-3 px-3 text-center">Lokal</th>
+                            <th class="py-3 px-3">Nama Mandor</th>
+                            <th class="py-3 px-3">Pelaksana Telak</th>
                             <th class="py-3 px-3">Brand</th>
                             <th class="py-3 px-3 text-right">Total Garapan</th>
                             <th class="py-3 px-3 text-right">Cacat Telak</th>
@@ -444,7 +451,7 @@
                             <th class="py-3 px-3 text-right">Gap (Selisih)</th>
                             <th class="py-3 px-3 text-right">Rata % Telak</th>
                             <th class="py-3 px-3 text-right">Rata % Mandor</th>
-                            <th class="py-3 px-2 text-center">Status</th>
+                            <th class="py-3 px-2 text-center">Status Mutu</th>
                         </tr>
                     </thead>
                     <tbody id="masterTableBody" class="divide-y divide-white/[0.04] text-slate-200">
